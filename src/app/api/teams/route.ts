@@ -15,6 +15,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    console.log("user from auth====== id:",user.id)
     // Create team
     const { data: team, error: teamError } = await supabase
       .from("teams")
@@ -22,11 +23,13 @@ export async function POST(request: NextRequest) {
         name,
         address: address || null,
         description: description || null,
+        user_id: user.id, 
       })
       .select()
       .single()
 
     if (teamError) {
+      console.log("teamError:",teamError)
       return NextResponse.json({ error: teamError.message }, { status: 400 })
     }
 
@@ -38,6 +41,7 @@ export async function POST(request: NextRequest) {
     })
 
     if (memberError) {
+      console.log("memberError:",teamError)
       return NextResponse.json({ error: memberError.message }, { status: 400 })
     }
 

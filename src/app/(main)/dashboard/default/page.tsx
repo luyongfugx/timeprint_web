@@ -1,25 +1,12 @@
-// import { ChartAreaInteractive } from "./_components/chart-area-interactive";
-// import { DataTable } from "./_components/data-table";
-// import data from "./_components/data.json";
-// import { SectionCards } from "./_components/section-cards";
-
-// export default function Page() {
-//   return (
-//     <div className="@container/main flex flex-col gap-4 md:gap-6">
-//       {/* <SectionCards />
-//       <ChartAreaInteractive />
-//       <DataTable data={data} /> */}
-//     </div>
-//   );
-// }
-
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import type { DateRange } from "react-day-picker"
 import { subDays } from "date-fns"
 import { useAuth } from "@/hooks/use-auth"
 import { useTeam } from "@/hooks/use-team"
+import { Button } from "@/components/ui/button"
 import { DatePickerWithRange } from "../_components/dashboard/date-range-picker"
 import { StatsCards } from "../_components/dashboard/stats-cards"
 import { CheckinTable } from "../_components/dashboard/checkin-table"
@@ -65,6 +52,7 @@ export default function HomePage() {
 
   const { user } = useAuth()
   const { team, userRole } = useTeam()
+  const router = useRouter()
 
   const canDelete = userRole === "creator" || userRole === "admin"
 
@@ -129,7 +117,19 @@ export default function HomePage() {
       console.error("Error deleting check-in:", error)
     }
   }
-
+  if (!team) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full space-y-6">
+        <div className="text-center space-y-2">
+          <h1 className="text-3xl font-bold tracking-tight">欢迎使用打卡系统</h1>
+          <p className="text-muted-foreground">您还没有加入任何团队，请先创建或加入一个团队</p>
+        </div>
+        <Button onClick={() => router.push("/dashboard/create-team")}>
+          创建团队
+        </Button>
+      </div>
+    )
+  }
   if (loading) {
     return (
         <div className="flex items-center justify-center h-full">

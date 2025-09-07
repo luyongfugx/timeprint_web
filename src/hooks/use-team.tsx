@@ -9,6 +9,7 @@ interface Team {
   name: string
   address: string | null
   description: string | null
+  user_id: string
 }
 
 interface TeamStore {
