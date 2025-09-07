@@ -14,8 +14,6 @@ export async function POST(request: NextRequest) {
     if (authError || !user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
-
-    console.log("user from auth====== id:",user.id)
     // Create team
     const { data: team, error: teamError } = await supabase
       .from("teams")
