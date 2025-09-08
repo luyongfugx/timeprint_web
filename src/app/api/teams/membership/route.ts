@@ -17,7 +17,6 @@ export async function GET() {
       .select("team_id, role, teams(*)")
       .eq("user_id", user.id)
       .single()
-      console.log("team_members teamMember:",user.id,teamMember,error)
     if (error) {
       return NextResponse.json({ teamMember: null })
     }

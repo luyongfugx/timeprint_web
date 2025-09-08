@@ -33,7 +33,6 @@ const useTeamStore = create<TeamStore>((set, get) => ({
 
   refreshTeam: async () => {
     const user = useAuthStore.getState().user
-    console.log("useTeamStore user",user?.id)
     if (!user) {
       set({ team: null, userRole: null, loading: false })
       return
@@ -43,7 +42,6 @@ const useTeamStore = create<TeamStore>((set, get) => ({
       const response = await fetch("/api/teams/membership")
   
       const data = await response.json()
-      console.log("useTeamStore response.data",data)
       if (!response.ok) {
         console.error("Error fetching team:", data.error)
         set({ team: null, userRole: null })

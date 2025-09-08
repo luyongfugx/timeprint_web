@@ -1,13 +1,14 @@
 import { createClient } from "@/lib/supabaseServer"
 import { type NextRequest, NextResponse } from "next/server"
 
-export async function GET(request: NextRequest, { params }: { params: { teamId: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ teamId: string }> }) {
   try {
     const supabase = await createClient()
     const {
       data: { user },
       error: authError,
     } = await supabase.auth.getUser()
+    const awaitedParams = await params
 
     if (authError || !user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -18,7 +19,7 @@ export async function GET(request: NextRequest, { params }: { params: { teamId: 
       .from("team_members")
       .select("role")
       .eq("user_id", user.id)
-      .eq("team_id", params.teamId)
+      .eq("team_id", awaitedParams.teamId)
       .single()
 
     if (!membership || (membership.role !== "creator" && membership.role !== "admin")) {
@@ -35,24 +36,21 @@ export async function GET(request: NextRequest, { params }: { params: { teamId: 
         role,
         joined_at
       `)
-      .eq("team_id", params.teamId)
+      .eq("team_id", awaitedParams.teamId)
       .order("joined_at", { ascending: true })
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 400 })
     }
     const userIds = data?.map(m => m.user_id);
-    console.log("userIds",userIds)
     const { data: users, } = await supabase
       .from("app_users") // 注意这里不是 auth.users
       .select("id, email, user_metadata")
       .in("id", userIds);
-      console.log("users",users)
 
     const members =
       data?.map((member) => {
         const user = users?.find(u => u.id === member.user_id);
-        console.log(member.user_id+":",user)
         return {
           id: member.id,
           user_id: member.user_id,
@@ -64,7 +62,6 @@ export async function GET(request: NextRequest, { params }: { params: { teamId: 
           user_avatar: user?.user_metadata?.avatar_url || null,
         };
       }) || []
-      console.log(+"members:",members)
     return NextResponse.json({ members })
   } catch (error) {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })

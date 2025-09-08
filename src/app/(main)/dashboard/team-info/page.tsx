@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useTeam } from "@/hooks/use-team"
+import { useAuth } from "@/hooks/use-auth"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -33,7 +34,7 @@ export default function TeamInfoPage() {
     address: "",
     description: "",
   })
-
+  const { user } = useAuth()
   const { team, userRole, refreshTeam } = useTeam()
   const { toast } = useToast()
 
@@ -128,7 +129,6 @@ export default function TeamInfoPage() {
     }
     setIsEditing(false)
   }
-
   if (loading) {
     return (
  
@@ -152,6 +152,8 @@ export default function TeamInfoPage() {
     
     )
   }
+
+
 
   return (
 

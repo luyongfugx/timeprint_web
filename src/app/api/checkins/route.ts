@@ -53,7 +53,6 @@ export async function GET(request: NextRequest) {
     }
 
     const { data: records, error } = await query
-    console.log("photo_checkins query",error,records) 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 400 })
     }
