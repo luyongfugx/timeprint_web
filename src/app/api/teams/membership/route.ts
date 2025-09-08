@@ -8,7 +8,6 @@ export async function GET() {
       data: { user },
       error: authError,
     } = await supabase.auth.getUser()
-
     if (authError || !user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
@@ -18,7 +17,7 @@ export async function GET() {
       .select("team_id, role, teams(*)")
       .eq("user_id", user.id)
       .single()
-
+      console.log("team_members teamMember:",user.id,teamMember,error)
     if (error) {
       return NextResponse.json({ teamMember: null })
     }

@@ -37,11 +37,7 @@ export async function GET(request: NextRequest) {
         latitude,
         longitude,
         location_name,
-        created_at,
-        profiles:user_id (
-          full_name,
-          avatar_url
-        )
+        created_at
       `)
       .eq("team_id", teamMember.team_id)
       .order("created_at", { ascending: false })
@@ -57,7 +53,7 @@ export async function GET(request: NextRequest) {
     }
 
     const { data: records, error } = await query
-
+    console.log("photo_checkins query",error,records) 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 400 })
     }
@@ -71,8 +67,8 @@ export async function GET(request: NextRequest) {
         longitude: record.longitude,
         location_name: record.location_name,
         created_at: record.created_at,
-        user_name: record.profiles?.full_name || "未知用户",
-        user_avatar: record.profiles?.avatar_url || null,
+        // user_name: record.profiles?.full_name || "未知用户",
+        // user_avatar: record.profiles?.avatar_url || null,
       })) || []
 
     return NextResponse.json({ records: checkinData })

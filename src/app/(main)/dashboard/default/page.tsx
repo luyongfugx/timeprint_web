@@ -117,6 +117,18 @@ export default function HomePage() {
       console.error("Error deleting check-in:", error)
     }
   }
+
+  if (loading) {
+    return (
+        <div className="flex items-center justify-center h-full">
+          <div className="text-center">
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto mb-4"></div>
+            <p className="text-muted-foreground">加载中...</p>
+          </div>
+        </div>
+
+    )
+  }
   if (!team) {
     return (
       <div className="flex flex-col items-center justify-center h-full space-y-6">
@@ -130,22 +142,11 @@ export default function HomePage() {
       </div>
     )
   }
-  if (loading) {
-    return (
-        <div className="flex items-center justify-center h-full">
-          <div className="text-center">
-            <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto mb-4"></div>
-            <p className="text-muted-foreground">加载中...</p>
-          </div>
-        </div>
-
-    )
-  }
 
   return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">打卡数据概览</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{team.name} - 打卡数据概览</h1>
           <p className="text-muted-foreground">查看团队成员的打卡统计和详细记录</p>
         </div>
 

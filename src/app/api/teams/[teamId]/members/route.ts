@@ -33,12 +33,7 @@ export async function GET(request: NextRequest, { params }: { params: { teamId: 
         user_id,
         team_id,
         role,
-        joined_at,
-        profiles:user_id (
-          full_name,
-          email,
-          avatar_url
-        )
+        joined_at
       `)
       .eq("team_id", params.teamId)
       .order("joined_at", { ascending: true })
@@ -46,19 +41,30 @@ export async function GET(request: NextRequest, { params }: { params: { teamId: 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 400 })
     }
+    const userIds = data?.map(m => m.user_id);
+    console.log("userIds",userIds)
+    const { data: users, } = await supabase
+      .from("app_users") // 注意这里不是 auth.users
+      .select("id, email, user_metadata")
+      .in("id", userIds);
+      console.log("users",users)
 
     const members =
-      data?.map((member) => ({
-        id: member.id,
-        user_id: member.user_id,
-        team_id: member.team_id,
-        role: member.role,
-        joined_at: member.joined_at,
-        user_name: member.profiles?.full_name || "未知用户",
-        user_email: member.profiles?.email || "",
-        user_avatar: member.profiles?.avatar_url || null,
-      })) || []
-
+      data?.map((member) => {
+        const user = users?.find(u => u.id === member.user_id);
+        console.log(member.user_id+":",user)
+        return {
+          id: member.id,
+          user_id: member.user_id,
+          team_id: member.team_id,
+          role: member.role,
+          joined_at: member.joined_at,
+          user_name: user?.user_metadata?.full_name || "未知用户",
+          user_email: user?.email || "",
+          user_avatar: user?.user_metadata?.avatar_url || null,
+        };
+      }) || []
+      console.log(+"members:",members)
     return NextResponse.json({ members })
   } catch (error) {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })

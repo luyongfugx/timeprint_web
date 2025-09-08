@@ -88,7 +88,6 @@ export async function authMiddleware(request: NextRequest) {
   const {
     data: { user },
   } = await supabase.auth.getUser()
-console.log("user",user)
   if (
     !user &&
     !request.nextUrl.pathname.startsWith('/auth/v1/login') &&

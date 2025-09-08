@@ -3,6 +3,8 @@ import {
   Banknote,
   type LucideIcon,
   HomeIcon,
+  Users2Icon,
+  GroupIcon,
 } from "lucide-react";
 
 export interface NavSubItem {
@@ -41,14 +43,14 @@ export const sidebarItems: NavGroup[] = [
         icon: HomeIcon,
       },
       {
-        title: "CRM",
-        url: "/dashboard/crm",
-        icon: ChartBar,
+        title: "Members",
+        url: "/dashboard/members",
+        icon: Users2Icon,
       },
       {
-        title: "Finance",
-        url: "/dashboard/finance",
-        icon: Banknote,
+        title: "TeamInfo",
+        url: "/dashboard/team-info",
+        icon: GroupIcon,
       }
     ],
   }
