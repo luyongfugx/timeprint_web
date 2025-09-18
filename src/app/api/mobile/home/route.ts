@@ -106,8 +106,7 @@ export async function GET(request: Request) {
         user_avatar: user?.user_metadata?.avatar_url || null
       }
     }) || []
-
-    return NextResponse.json({
+    var resultJson = {
       team: teamMember.teams,
       statistics: {
         total_members: totalMembers || 0,
@@ -116,7 +115,9 @@ export async function GET(request: Request) {
         today_checkin_photos: todayCheckinPhotos
       },
       today_checkins: formattedCheckins
-    })
+    }
+    console.log("resultJson",resultJson)
+    return NextResponse.json(resultJson)
   } catch (error) {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }

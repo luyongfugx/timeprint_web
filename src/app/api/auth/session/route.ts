@@ -9,6 +9,7 @@ export async function GET() {
       error,
     } = await supabase.auth.getSession()
 
+    
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 400 })
     }
