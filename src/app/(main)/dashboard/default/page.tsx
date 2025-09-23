@@ -76,7 +76,7 @@ export default function HomePage() {
       // Fetch check-in records
       const recordsResponse = await fetch(`/api/checkins?${params}`)
       const recordsData = await recordsResponse.json()
-
+            console.log("recordsData",recordsData);
       if (!recordsResponse.ok) {
         throw new Error(recordsData.error || "Failed to fetch records")
       }

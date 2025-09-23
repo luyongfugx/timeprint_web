@@ -56,9 +56,23 @@ export async function GET(request: NextRequest) {
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 400 })
     }
+    const userIds = records?.map(checkin => checkin.user_id).filter(Boolean) || []
+    let usersData: Array<{ id: string; email: string; user_metadata: any }> = []
+    
+    if (userIds.length > 0) {
+      const { data: users, error: usersError } = await supabase
+        .from("app_users")
+        .select("id, email, user_metadata")
+        .in("id", userIds)
+      if (!usersError) {
+        usersData = users || []
+      }
+    }
 
     const checkinData =
-      records?.map((record) => ({
+      records?.map((record) => {
+        const user = usersData.find(u => u.id === record.user_id)
+        return {
         id: record.id,
         user_id: record.user_id,
         photo_url: record.photo_url,
@@ -66,9 +80,12 @@ export async function GET(request: NextRequest) {
         longitude: record.longitude,
         location_name: record.location_name,
         created_at: record.created_at,
+        user_name: user?.user_metadata?.full_name || "未知用户",
+        user_email: user?.email || "",
+        user_avatar: user?.user_metadata?.avatar_url || null
         // user_name: record.profiles?.full_name || "未知用户",
         // user_avatar: record.profiles?.avatar_url || null,
-      })) || []
+      }})
 
     return NextResponse.json({ records: checkinData })
   } catch (error) {
