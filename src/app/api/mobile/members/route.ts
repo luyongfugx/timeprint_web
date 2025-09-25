@@ -1,6 +1,8 @@
 import { getSessionUser } from "@/lib/requestUtil"
 import { createClient } from "@/lib/supabaseServer"
 import { NextResponse } from "next/server"
+
+
 export async function GET(request: Request) {
   try {
     const supabase = await createClient()
