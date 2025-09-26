@@ -1,3 +1,4 @@
+import { getSessionUser } from "@/lib/requestUtil"
 import { createClient } from "@/lib/supabaseServer"
 import { type NextRequest, NextResponse } from "next/server"
 
@@ -5,14 +6,15 @@ export async function POST(request: NextRequest) {
   try {
     const { name, address, description } = await request.json()
     const supabase = await createClient()
-
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser()
-
-    if (authError || !user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    const sessionUser = await getSessionUser(request)
+    let user = sessionUser.user
+    if (!user) {
+      return NextResponse.json(
+        {
+          status:401,
+          msg:"Unauthorized",
+          data: {}
+        })
     }
     // Create team
     const { data: team, error: teamError } = await supabase
@@ -27,8 +29,12 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (teamError) {
-      console.log("teamError:",teamError)
-      return NextResponse.json({ error: teamError.message }, { status: 400 })
+      return NextResponse.json(
+        {
+          status:400,
+          msg:teamError.message,
+          data: {}
+        })
     }
 
     // Add user as team creator
@@ -39,12 +45,27 @@ export async function POST(request: NextRequest) {
     })
 
     if (memberError) {
-      console.log("memberError:",teamError)
-      return NextResponse.json({ error: memberError.message }, { status: 400 })
+      return NextResponse.json(
+        {
+          status:400,
+          error: memberError.message ,
+          data: {}
+        })
     }
 
-    return NextResponse.json({ team })
+    return NextResponse.json(
+      {
+        status:200,
+        error: "succ",
+        data: team
+      })
   } catch (error) {
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    return NextResponse.json(
+      {
+        status:500,
+        error: "Internal server error" ,
+        data: {}
+      })
+
   }
 }

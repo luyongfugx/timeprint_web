@@ -1,17 +1,21 @@
+import { getSessionUser } from "@/lib/requestUtil"
 import { createClient } from "@/lib/supabaseServer"
 import { type NextRequest, NextResponse } from "next/server"
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ teamId: string }> }) {
   try {
     const supabase = await createClient()
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser()
+    const sessionUser = await getSessionUser(request)
+    let user = sessionUser.user
     const awaitedParams = await params
 
-    if (authError || !user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    if (!user) {
+      return NextResponse.json(
+        {
+          status:401,
+          msg:"Unauthorized",
+          data: {}
+        })
     }
 
     // Check if user is member of the team
@@ -23,7 +27,11 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       .single()
 
     if (membership) {
-      return NextResponse.json({ error: "Access denied" }, { status: 403 })
+      return NextResponse.json( {
+        status:403,
+        msg:"Access denied",
+        data: {}
+      })
     }
     const { data: newMembership, error: insertError } = await supabase
       .from("team_members")
@@ -34,9 +42,16 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       })
       .select()
       .single()
-
-    return NextResponse.json(newMembership)
+      return NextResponse.json( {
+        status:200,
+        msg:"succ",
+        data:newMembership
+      })
   } catch (error) {
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    return NextResponse.json( {
+      status:500,
+      msg:"Internal server error",
+      data: {}
+    })
   }
 }
