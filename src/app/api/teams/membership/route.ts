@@ -16,7 +16,6 @@ export async function GET(request: Request) {
       .select("team_id, role, teams(*)")
       .eq("user_id", user.id)
       .single()
-      return NextResponse.json({ teamMember: null })
     if (error) {
       return NextResponse.json({ teamMember: null })
     }
