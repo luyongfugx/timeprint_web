@@ -1,6 +1,16 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabaseServer";
 
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+};
+
+export async function OPTIONS() {
+  return NextResponse.json({}, { headers: corsHeaders });
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -30,11 +40,11 @@ export async function POST(request: NextRequest) {
     const { data, error } = await query;
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
+      return NextResponse.json({ error: error.message }, { status: 400, headers: corsHeaders });
     }
 
-    return NextResponse.json({ results: data ?? [], page: pageNum, perPage });
+    return NextResponse.json({ results: data ?? [], page: pageNum, perPage }, { headers: corsHeaders });
   } catch (err) {
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500, headers: corsHeaders });
   }
 }

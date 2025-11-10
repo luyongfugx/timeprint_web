@@ -2,13 +2,23 @@ import { createClient } from "@/lib/supabaseServer";
 import { type NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+};
+
+export async function OPTIONS() {
+  return NextResponse.json({}, { headers: corsHeaders });
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { watermarkName, companyName, coverImageUrl, jsonDownloadUrl, status, userId } = await request.json();
 
     // 验证必要字段
     if (!watermarkName || !companyName || !coverImageUrl || !jsonDownloadUrl || !userId) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+      return NextResponse.json({ error: "Missing required fields" }, { status: 400, headers: corsHeaders });
     }
 
     const supabase = await createClient();
@@ -33,7 +43,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
+      return NextResponse.json({ error: error.message }, { status: 400, headers: corsHeaders });
     }
 
     // 构建分享链接
@@ -41,12 +51,15 @@ export async function POST(request: NextRequest) {
     shareUrl.pathname = "/share"; // 假设前端分享页面路径为 /share
     shareUrl.searchParams.set("code", randomCode);
 
-    return NextResponse.json({
-      success: true,
-      shareLink: shareUrl.toString(),
-      shareCode: randomCode,
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        shareLink: shareUrl.toString(),
+        shareCode: randomCode,
+      },
+      { headers: corsHeaders },
+    );
   } catch (error) {
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500, headers: corsHeaders });
   }
 }

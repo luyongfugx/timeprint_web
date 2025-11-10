@@ -1,13 +1,23 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabaseServer";
 
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, PUT, DELETE, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+};
+
+export async function OPTIONS() {
+  return NextResponse.json({}, { headers: corsHeaders });
+}
+
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const awaitedParams = await params;
     const shareCode = awaitedParams.id;
 
     if (!shareCode) {
-      return NextResponse.json({ error: "Missing share code" }, { status: 400 });
+      return NextResponse.json({ error: "Missing share code" }, { status: 400, headers: corsHeaders });
     }
 
     const supabase = await createClient();
@@ -20,16 +30,16 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     if (error) {
       // If row not found, Supabase returns null data without error; handle generically
-      return NextResponse.json({ error: error.message }, { status: 400 });
+      return NextResponse.json({ error: error.message }, { status: 400, headers: corsHeaders });
     }
 
     if (!shareLink) {
-      return NextResponse.json({ error: "Not found" }, { status: 404 });
+      return NextResponse.json({ error: "Not found" }, { status: 404, headers: corsHeaders });
     }
 
-    return NextResponse.json({ shareLink });
+    return NextResponse.json({ shareLink }, { headers: corsHeaders });
   } catch (err) {
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500, headers: corsHeaders });
   }
 }
 
@@ -39,7 +49,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const shareCode = awaitedParams.id;
 
     if (!shareCode) {
-      return NextResponse.json({ error: "Missing share code" }, { status: 400 });
+      return NextResponse.json({ error: "Missing share code" }, { status: 400, headers: corsHeaders });
     }
 
     const body = await request.json();
@@ -55,7 +65,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     if (typeof status === "number") updates.status = status;
 
     if (Object.keys(updates).length === 0) {
-      return NextResponse.json({ error: "No valid fields to update" }, { status: 400 });
+      return NextResponse.json({ error: "No valid fields to update" }, { status: 400, headers: corsHeaders });
     }
 
     const { data, error } = await supabase
@@ -66,12 +76,12 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       .single();
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
+      return NextResponse.json({ error: error.message }, { status: 400, headers: corsHeaders });
     }
 
-    return NextResponse.json({ success: true, updated: data });
+    return NextResponse.json({ success: true, updated: data }, { headers: corsHeaders });
   } catch (err) {
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500, headers: corsHeaders });
   }
 }
 
@@ -81,7 +91,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     const shareCode = awaitedParams.id;
 
     if (!shareCode) {
-      return NextResponse.json({ error: "Missing share code" }, { status: 400 });
+      return NextResponse.json({ error: "Missing share code" }, { status: 400, headers: corsHeaders });
     }
 
     const supabase = await createClient();
@@ -89,11 +99,11 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     const { error } = await supabase.from("watermarks_share_links").delete().eq("share_code", shareCode);
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
+      return NextResponse.json({ error: error.message }, { status: 400, headers: corsHeaders });
     }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true }, { headers: corsHeaders });
   } catch (err) {
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500, headers: corsHeaders });
   }
 }
