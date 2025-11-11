@@ -171,6 +171,30 @@ export default function Page() {
     }
   };
 
+  const unpublishItem = async (item: LinkItem) => {
+    if (!item.share_code) return setError("Missing share code for unpublish");
+    if (!confirm(`确认${item.status === -1 ? "上架" : "下架"}水印 "${item.watermark_name}" ?`)) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/applink/${encodeURIComponent(item.share_code)}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: item.status === -1 ? 0 : -1 }),
+      });
+      const json = await res.json();
+      if (json?.success) {
+        await doSearch(undefined, page);
+      } else {
+        setError(json?.error || "Unpublish failed");
+      }
+    } catch (err: any) {
+      setError(err?.message || "Network error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="p-4">
       <h2 className="mb-4 text-xl font-semibold">水印分享管理</h2>
@@ -221,6 +245,9 @@ export default function Page() {
                       <div className="font-semibold">{it.watermark_name}</div>
                       <div className="text-muted-foreground text-sm">{it.company_name}</div>
                       <div className="text-muted-foreground mt-1 text-xs">code: {it.share_code}</div>
+                      <div className="text-muted-foreground mt-1 text-xs">
+                        status: {it.status === -1 ? "已下架" : "正常"}
+                      </div>
                     </div>
 
                     <div className="flex flex-col gap-2">
@@ -232,6 +259,9 @@ export default function Page() {
                       </button>
                       <button className="text-sm text-yellow-600" onClick={() => startEdit(it)}>
                         编辑
+                      </button>
+                      <button className="text-sm text-amber-600" onClick={() => unpublishItem(it)}>
+                        {it.status === -1 ? "上架" : "下架"}
                       </button>
                       <button className="text-sm text-red-600" onClick={() => deleteItem(it)}>
                         删除

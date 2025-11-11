@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
     let query = supabase
       .from("watermarks_share_links")
       .select("id,watermark_name,company_name,cover_image_url,json_download_url,status,created_at,share_code")
-      .gte("status", 0)
+      // .gte("status", 0)
       .order("created_at", { ascending: false })
       .range(from, to);
 
