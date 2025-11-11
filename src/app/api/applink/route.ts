@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 构建分享链接
-    const shareUrl = new URL(request.url);
+    const shareUrl = new URL("https://share.timeprint.net");
     shareUrl.pathname = "/share"; // 假设前端分享页面路径为 /share
     shareUrl.searchParams.set("code", randomCode);
 
