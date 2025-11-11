@@ -87,12 +87,7 @@ export default function Page() {
                 <div className="text-muted-foreground flex h-full w-full items-center justify-center">无封面图片</div>
               )}
 
-              <button
-                onClick={handleUse}
-                className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-md bg-yellow-500 px-4 py-2 text-sm text-white shadow-lg hover:bg-yellow-600 focus:ring-2 focus:ring-yellow-300 focus:outline-none"
-              >
-                使用水印
-              </button>
+              <a href="https://www.timeprint.net/en/?json_url=jsonurl"> 使用水印</a>
             </div>
 
             <div className="p-4">
