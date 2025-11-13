@@ -27,7 +27,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       .from("watermarks_share_links")
       .select("*")
       .eq("share_code", shareCode)
-      .gte("status", 0)
+      .eq("status", 0)
       .or(`expire_time.eq.0,expire_time.gt.${nowSec}`)
       .single();
 
