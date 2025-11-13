@@ -11,6 +11,7 @@ type LinkItem = {
   status?: number;
   created_at?: string;
   share_code?: string;
+  expire_time?: number | null;
 };
 
 export default function Page() {
@@ -30,6 +31,7 @@ export default function Page() {
     jsonDownloadUrl: "",
     status: 0,
     userId: "",
+    expireType: 0 as 0 | 1 | 2 | 3,
   });
 
   const [showCreate, setShowCreate] = useState(false);
@@ -42,6 +44,7 @@ export default function Page() {
     coverImageUrl: "",
     jsonDownloadUrl: "",
     status: 0,
+    expireType: 0 as 0 | 1 | 2 | 3,
   });
 
   const doSearch = async (kw?: string, pageNum?: number) => {
@@ -94,7 +97,15 @@ export default function Page() {
       if (json?.success) {
         // refresh current page
         await doSearch(undefined, 1);
-        setForm({ watermarkName: "", companyName: "", coverImageUrl: "", jsonDownloadUrl: "", status: 0, userId: "" });
+        setForm({
+          watermarkName: "",
+          companyName: "",
+          coverImageUrl: "",
+          jsonDownloadUrl: "",
+          status: 0,
+          userId: "",
+          expireType: 0,
+        });
       } else {
         setError(json?.error || "Create failed");
       }
@@ -113,6 +124,15 @@ export default function Page() {
       coverImageUrl: item.cover_image_url || "",
       jsonDownloadUrl: item.json_download_url || "",
       status: item.status ?? 0,
+      expireType: (() => {
+        if (!item.expire_time || item.expire_time === 0) return 0;
+        const nowSec = Math.floor(Date.now() / 1000);
+        const delta = item.expire_time - nowSec;
+        // 近似还原：如果在 1 小时以内选 3；1 天以内选 2；30 天以内选 1；否则默认 1
+        if (delta <= 60 * 60) return 3;
+        if (delta <= 24 * 60 * 60) return 2;
+        return 1;
+      })(),
     });
   };
 
@@ -134,6 +154,7 @@ export default function Page() {
           coverImageUrl: editForm.coverImageUrl,
           jsonDownloadUrl: editForm.jsonDownloadUrl,
           status: editForm.status,
+          expireType: editForm.expireType,
         }),
       });
       const json = await res.json();
@@ -248,6 +269,21 @@ export default function Page() {
                       <div className="text-muted-foreground mt-1 text-xs">
                         status: {it.status === -1 ? "已下架" : "正常"}
                       </div>
+                      <div className="text-muted-foreground mt-1 text-xs">
+                        过期时间:{" "}
+                        {it.expire_time && it.expire_time > 0
+                          ? new Date((it.expire_time as number) * 1000).toLocaleString()
+                          : "永不过期"}{" "}
+                        {(() => {
+                          const nowSec = Math.floor(Date.now() / 1000);
+                          const expired = !!(it.expire_time && it.expire_time > 0 && it.expire_time <= nowSec);
+                          return (
+                            <span className={expired ? "text-red-600" : "text-green-600"}>
+                              ({expired ? "已过期" : "未过期"})
+                            </span>
+                          );
+                        })()}
+                      </div>
                     </div>
 
                     <div className="flex flex-col gap-2">
@@ -334,6 +370,16 @@ export default function Page() {
                 value={form.userId}
                 onChange={(e) => setForm({ ...form, userId: e.target.value })}
               />
+              <select
+                className="rounded border px-2 py-1"
+                value={form.expireType}
+                onChange={(e) => setForm({ ...form, expireType: Number(e.target.value) as 0 | 1 | 2 | 3 })}
+              >
+                <option value={0}>永不过期</option>
+                <option value={1}>1个月过期</option>
+                <option value={2}>1天过期</option>
+                <option value={3}>1小时过期</option>
+              </select>
               <div className="mt-2 flex gap-2">
                 <button
                   className="rounded bg-green-600 px-3 py-2 text-white"
@@ -380,6 +426,16 @@ export default function Page() {
                 value={editForm.jsonDownloadUrl}
                 onChange={(e) => setEditForm({ ...editForm, jsonDownloadUrl: e.target.value })}
               />
+              <select
+                className="rounded border px-2 py-1"
+                value={editForm.expireType}
+                onChange={(e) => setEditForm({ ...editForm, expireType: Number(e.target.value) as 0 | 1 | 2 | 3 })}
+              >
+                <option value={0}>永不过期</option>
+                <option value={1}>1个月过期</option>
+                <option value={2}>1天过期</option>
+                <option value={3}>1小时过期</option>
+              </select>
               <div className="mt-2 flex gap-2">
                 <button className="rounded bg-yellow-600 px-3 py-2 text-white" onClick={saveEdit}>
                   保存

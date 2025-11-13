@@ -21,14 +21,18 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     const supabase = await createClient();
+    const nowSec = Math.floor(Date.now() / 1000);
 
     const { data: shareLink, error } = await supabase
       .from("watermarks_share_links")
       .select("*")
       .eq("share_code", shareCode)
+      .gte("status", 0)
+      .or(`expire_time.eq.0,expire_time.gt.${nowSec}`)
       .single();
 
     if (error) {
+      console.log(error);
       // If row not found, Supabase returns null data without error; handle generically
       return NextResponse.json({ error: error.message }, { status: 400, headers: corsHeaders });
     }
@@ -53,7 +57,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     const body = await request.json();
-    const { watermarkName, companyName, coverImageUrl, jsonDownloadUrl, status } = body ?? {};
+    const { watermarkName, companyName, coverImageUrl, jsonDownloadUrl, status, expireType } = body ?? {};
 
     const supabase = await createClient();
 
@@ -63,6 +67,26 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     if (typeof coverImageUrl === "string") updates.cover_image_url = coverImageUrl;
     if (typeof jsonDownloadUrl === "string") updates.json_download_url = jsonDownloadUrl;
     if (typeof status === "number") updates.status = status;
+
+    // Optional: update expire_time based on expireType (0: forever, 1: 30 days, 2: 1 day, 3: 1 hour)
+    if (typeof expireType === "number") {
+      const nowSec = Math.floor(Date.now() / 1000);
+      let expireTime = 0;
+      switch (expireType) {
+        case 1:
+          expireTime = nowSec + 30 * 24 * 60 * 60;
+          break;
+        case 2:
+          expireTime = nowSec + 24 * 60 * 60;
+          break;
+        case 3:
+          expireTime = nowSec + 60 * 60;
+          break;
+        default:
+          expireTime = 0;
+      }
+      updates.expire_time = expireTime;
+    }
 
     if (Object.keys(updates).length === 0) {
       return NextResponse.json({ error: "No valid fields to update" }, { status: 400, headers: corsHeaders });

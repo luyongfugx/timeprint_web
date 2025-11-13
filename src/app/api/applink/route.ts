@@ -14,11 +14,29 @@ export async function OPTIONS() {
 
 export async function POST(request: NextRequest) {
   try {
-    const { watermarkName, companyName, coverImageUrl, jsonDownloadUrl, status, userId } = await request.json();
+    const { watermarkName, companyName, coverImageUrl, jsonDownloadUrl, status, userId, expireType } =
+      await request.json();
 
     // 验证必要字段
     if (!watermarkName || !companyName || !coverImageUrl || !jsonDownloadUrl || !userId) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400, headers: corsHeaders });
+    }
+
+    // 计算过期时间（Unix 秒级时间戳）；0 表示永不过期
+    const nowSec = Math.floor(Date.now() / 1000);
+    let expireTime = 0;
+    switch (expireType) {
+      case 1: // 一个月内不过期（按30天计算）
+        expireTime = nowSec + 30 * 24 * 60 * 60;
+        break;
+      case 2: // 一天内不过期
+        expireTime = nowSec + 24 * 60 * 60;
+        break;
+      case 3: // 一小时内不过期
+        expireTime = nowSec + 60 * 60;
+        break;
+      default: // 0 或未传：永不过期
+        expireTime = 0;
     }
 
     const supabase = await createClient();
@@ -38,6 +56,7 @@ export async function POST(request: NextRequest) {
         created_at: new Date().toISOString(),
         user_id: userId,
         share_code: randomCode,
+        expire_time: expireTime,
       })
       .select()
       .single();
