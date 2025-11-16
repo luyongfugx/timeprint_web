@@ -17,8 +17,8 @@ export async function POST(request: NextRequest) {
     const { watermarkName, companyName, coverImageUrl, jsonDownloadUrl, status, userId, expireType } =
       await request.json();
 
-    // 验证必要字段
-    if (!watermarkName || !companyName || !coverImageUrl || !jsonDownloadUrl || !userId) {
+    // 验证必要字段（companyName 可选）
+    if (!watermarkName || !coverImageUrl || !jsonDownloadUrl || !userId) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400, headers: corsHeaders });
     }
 
@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
       .from("watermarks_share_links")
       .insert({
         watermark_name: watermarkName,
-        company_name: companyName,
+        company_name: companyName || null,
         cover_image_url: coverImageUrl,
         json_download_url: jsonDownloadUrl,
         status: status || 0,

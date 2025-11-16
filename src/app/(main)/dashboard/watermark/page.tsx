@@ -266,8 +266,11 @@ export default function Page() {
                       <div className="font-semibold">{it.watermark_name}</div>
                       <div className="text-muted-foreground text-sm">{it.company_name}</div>
                       <div className="text-muted-foreground mt-1 text-xs">code: {it.share_code}</div>
-                      <div className="text-muted-foreground mt-1 text-xs">
-                        status: {it.status === -1 ? "已下架" : "正常"}
+                      <div className="mt-1 text-xs">
+                        状态:{" "}
+                        <span className={it.status === -1 ? "text-red-600" : "text-green-600"}>
+                          {it.status === -1 ? "已下架" : "正常"}
+                        </span>
                       </div>
                       <div className="text-muted-foreground mt-1 text-xs">
                         过期时间:{" "}
