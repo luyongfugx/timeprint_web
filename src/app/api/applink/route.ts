@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
       await request.json();
 
     // 验证必要字段（companyName 可选）
-    if (!watermarkName || !coverImageUrl || !jsonDownloadUrl || !userId) {
+    if (!watermarkName || !coverImageUrl || !jsonDownloadUrl) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400, headers: corsHeaders });
     }
 
@@ -43,7 +43,6 @@ export async function POST(request: NextRequest) {
 
     // 生成8位随机码
     const randomCode = crypto.randomBytes(4).toString("hex").toUpperCase();
-
     // 创建水印分享记录
     const { data: shareLink, error } = await supabase
       .from("watermarks_share_links")
@@ -54,7 +53,7 @@ export async function POST(request: NextRequest) {
         json_download_url: jsonDownloadUrl,
         status: status || 0,
         created_at: new Date().toISOString(),
-        user_id: userId,
+        user_id: userId || "anonymous",
         share_code: randomCode,
         expire_time: expireTime,
       })
