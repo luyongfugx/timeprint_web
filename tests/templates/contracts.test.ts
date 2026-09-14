@@ -39,10 +39,14 @@ test("codes, Chinese words, legacy hex, and allowed links are distinguished", ()
   assert.equal(queryCode("deadbeef", "auto"), "DEADBEEF");
   assert.equal(queryCode("TP7K9W4R2M", "keyword"), null);
   assert.equal(queryCode("https://share.timeprint.net/share?code=TQ8H3Y6V9N", "auto"), "TQ8H3Y6V9N");
+  assert.equal(queryCode("https://share.timeprint.net/zh-Hans/share?code=FE2FAE61", "auto"), "FE2FAE61");
+  assert.equal(queryCode("https://share.timeprint.net/en/share/?code=FE2FAE61", "code"), "FE2FAE61");
   for (const url of [
     "https://evil.example/share?code=AB12CD",
     "https://share.timeprint.net@evil.example/share?code=AB12CD",
     "https://share.timeprint.net/share?code=AB12CD&code=ABC234",
+    "https://share.timeprint.net/admin/share?code=AB12CD",
+    "https://share.timeprint.net/zh-Hans/share?code=AB12CD&code=ABC234",
   ])
     assert.throws(() => queryCode(url, "auto"));
 });

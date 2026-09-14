@@ -6,7 +6,7 @@ import { z } from "zod";
 import { database } from "../prisma";
 
 import { byCode, card, checkReadable, detail, ensureSnapshot, normalizeCode } from "./access-service";
-import { enabled, secret, shareOrigin } from "./config";
+import { apiOrigin, enabled, secret, shareOrigin } from "./config";
 import { listSchema, searchSchema, type TemplateRow } from "./contracts";
 import { canonical, equalSecret, sha256 } from "./crypto";
 import { TemplateError } from "./errors";
@@ -23,7 +23,7 @@ export function queryCode(query: string, mode: string): string | null {
     }
     if (
       u.origin !== shareOrigin() ||
-      u.pathname !== "/share" ||
+      !/^\/(?:[a-z]{2,3}(?:-[a-z0-9]{2,8})*\/)?share\/?$/i.test(u.pathname) ||
       u.username ||
       u.password ||
       u.hash ||
@@ -167,8 +167,8 @@ export async function discovery(input: z.infer<typeof listSchema>) {
     trending: data ?? [],
     popular: await publicPage(input),
     links: {
-      removal: `${shareOrigin()}/templates/contact?kind=removal`,
-      companyRequest: `${shareOrigin()}/templates/contact?kind=company`,
+      removal: `${apiOrigin()}/templates/contact?kind=removal`,
+      companyRequest: `${apiOrigin()}/templates/contact?kind=company`,
     },
   };
 }

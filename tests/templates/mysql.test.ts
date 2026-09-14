@@ -385,7 +385,22 @@ test("real MySQL: cross-session bindings and evidence ownership are enforced", {
     byteLength: bytes.length,
     sha256: sha256(bytes),
   });
-  await fetch(asset.uploadURL, { method: "PUT", body: new Uint8Array(bytes) });
+  const uploadEvidence = (token: string, data = bytes) =>
+    v2Route(
+      new Request(
+        `https://wm.timeprint.net/api/applink/v2/request-upload-sessions/${s.uploadSessionID}/assets/${asset.assetID}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "image/png", "X-Template-Upload-Token": token },
+          body: new Uint8Array(data),
+        },
+      ),
+      ["request-upload-sessions", s.uploadSessionID, "assets", asset.assetID],
+    );
+  assert.equal((await uploadEvidence("wrong-token")).status, 403);
+  assert.equal((await uploadEvidence(s.uploadToken, Buffer.from("wrong bytes"))).status, 422);
+  assert.equal((await uploadEvidence(s.uploadToken)).status, 200);
+  assert.equal((await uploadEvidence(s.uploadToken)).status, 200);
   await completeSession(state, s.uploadToken, undefined, undefined, [asset.assetID]);
   const request = requestSchema.parse({
     clientRequestID: requestID,
@@ -451,8 +466,76 @@ test("Prisma: parameter binding, rollback, JSON/date/bigint and generated model 
       "discovery",
     ]);
     assert.equal(response.status, 200);
-    assert.deepEqual((await response.json()).trending, [{ term: "Prisma verified" }]);
+    const discoveryResult = await response.json();
+    assert.deepEqual(discoveryResult.trending, [{ term: "Prisma verified" }]);
+    assert.equal(discoveryResult.links.removal, "https://wm.timeprint.net/templates/contact?kind=removal");
   } finally {
     await database().template_trending_terms.delete({ where: { id } });
   }
 });
+
+test(
+  "legacy compatibility: 8-hex codes, expiry, original DTO and historical keyword search",
+  { skip: !active },
+  async () => {
+    const { POST: legacySearch } = await import("../../src/app/api/applink/search/route");
+    const { GET: legacyGet } = await import("../../src/app/api/applink/[id]/route");
+    const title = `LegacyCompatibility-${randomUUID()}`;
+    let historicalID = "";
+    for (const expiry of [0, 2592000, 86400, 3600]) {
+      const d = await draft("public", title);
+      const r = await publish(d.req, { ...d.input, watermarkName: "L".repeat(255) }, 1, expiry);
+      assert.match(r.receipt.shareCode, /^[A-F0-9]{8}$/);
+      const result = await legacyGet(new Request(`https://wm.timeprint.net/api/applink/${r.receipt.shareCode}`), {
+        params: Promise.resolve({ id: r.receipt.shareCode }),
+      });
+      assert.equal(result.status, 200);
+      const dto = (await result.json()).shareLink;
+      assert.equal(dto.watermark_name.length, 255);
+      assert.equal(typeof dto.company_name, "string");
+      assert.equal(dto.share_code, r.receipt.shareCode);
+      assert.equal(Number(dto.expire_time), expiry ? Date.parse(dto.created_at) / 1000 + expiry : 0);
+      const actor = actorHash(randomUUID());
+      assert.equal((await recordUse(r.receipt.templateID, r.receipt.shareCode, actor)).counted, true);
+      assert.equal((await recordUse(r.receipt.templateID, r.receipt.shareCode, actor)).counted, false);
+      const [counted] = await rows<{ use_count: number }>("SELECT use_count FROM watermarks_share_links WHERE id=?", [
+        r.receipt.templateID,
+      ]);
+      assert.equal(Number(counted.use_count), 1);
+      if (expiry === 0) historicalID = r.receipt.templateID;
+    }
+    process.env.TEMPLATE_ALLOWED_LEGACY_ASSET_HOSTS = "wm-1330977225.cos.ap-singapore.myqcloud.com";
+    await write(
+      "UPDATE watermarks_share_links SET watermark_name=?,cover_asset_id=NULL,payload_asset_id=NULL,cover_image_url=?,json_download_url=? WHERE id=?",
+      [
+        title,
+        "https://wm-1330977225.cos.ap-singapore.myqcloud.com/ugc_cover/fixture.png",
+        "https://wm-1330977225.cos.ap-singapore.myqcloud.com/ugc_json/fixture.json",
+        historicalID,
+      ],
+    );
+    const searchLegacy = () =>
+      legacySearch(
+        new Request("https://wm.timeprint.net/api/applink/search", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ keyword: title, page: 1, limit: 500 }),
+        }),
+      );
+    const found = await searchLegacy();
+    assert.equal(found.status, 200);
+    const data = await found.json();
+    assert.equal(data.perPage, 500);
+    assert.deepEqual(
+      data.results.map((r: { id: string }) => r.id),
+      [historicalID],
+    );
+    await write("UPDATE watermarks_share_links SET status=-1 WHERE id=?", [historicalID]);
+    assert.equal((await (await searchLegacy()).json()).results.length, 0);
+    await write("UPDATE watermarks_share_links SET status=0,expire_time=1 WHERE id=?", [historicalID]);
+    assert.equal((await (await searchLegacy()).json()).results.length, 0);
+    const privateDraft = await draft("private", title);
+    await publish(privateDraft.req, privateDraft.input);
+    assert.equal((await (await searchLegacy()).json()).results.length, 0);
+  },
+);

@@ -76,12 +76,15 @@ function Contact() {
             },
             { "X-Template-Upload-Token": s.uploadToken },
           );
-          const uploaded = await fetch(a.uploadURL, {
-            method: "PUT",
-            headers: a.uploadHeaders,
-            body: file,
-            referrerPolicy: "no-referrer",
-          });
+          const uploaded = await fetch(
+            `/api/applink/v2/request-upload-sessions/${s.uploadSessionID}/assets/${a.assetID}`,
+            {
+              method: "PUT",
+              headers: { "Content-Type": file.type, "X-Template-Upload-Token": s.uploadToken },
+              body: file,
+              referrerPolicy: "no-referrer",
+            },
+          );
           if (!uploaded.ok) throw new Error("Image upload failed. Please try again.");
           state.attachments.push(a.assetID);
         }

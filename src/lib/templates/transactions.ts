@@ -1,5 +1,5 @@
 import "server-only";
-import { randomUUID } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 
 import { checkReadable } from "./access-policy";
 import { apiBase, shareOrigin } from "./config";
@@ -84,7 +84,7 @@ export async function publishTransaction(
     let code = "",
       id = "";
     for (let attempt = 0; attempt < 5; attempt++) {
-      code = shareCode();
+      code = contract === 1 ? randomBytes(4).toString("hex").toUpperCase() : shareCode();
       try {
         await write(
           `INSERT INTO watermarks_share_links (watermark_name,company_name,cover_image_url,json_download_url,status,created_at,user_id,share_code,expire_time,contract_version,visibility,discovery_state,cover_kind,cover_width,cover_height,payload_sha256,expires_at,actor_hash,cover_asset_id,payload_asset_id)

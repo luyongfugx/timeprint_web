@@ -68,7 +68,7 @@ export async function endpoint(req: Request, handler: () => Promise<Response>, l
     if (origin && [shareOrigin(), apiOrigin()].includes(origin))
       response.headers.set("Access-Control-Allow-Origin", origin);
     response.headers.set("Vary", "Origin");
-    response.headers.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    response.headers.set("Access-Control-Allow-Methods", "GET, POST, PUT, OPTIONS");
     response.headers.set(
       "Access-Control-Allow-Headers",
       "Content-Type, Idempotency-Key, X-Template-Upload-Protocol, X-Template-Upload-Session, X-Template-Upload-Token",

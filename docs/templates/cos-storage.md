@@ -32,7 +32,7 @@ TEMPLATE_ADMIN_ORIGIN=https://wm.timeprint.net,https://team.timeprint.net
 
 所有新对象上传均指定 `x-cos-acl: private`，并在上传签名中绑定该头及 `x-cos-forbid-overwrite: true`。旧桶整体权限和旧对象不被修改。CAM 凭据需有目标目录的 PutObject、GetObject 及设置对象 ACL 权限；清理脚本另外需要 ListBucket/DeleteObject。限制到新目录，桶级列举权限使用前缀条件。不要给新目录配置匿名读取 Bucket Policy；显式匿名 Allow 策略可能使私有 ACL 失去保护效果，使用下面的实测脚本检查。
 
-浏览器工单附件直接 PUT 到 COS，因此需要在 COS CORS 允许实际表单来源（按部署可能包括 `https://share.timeprint.net`、`https://wm.timeprint.net`、`https://team.timeprint.net`），方法 PUT，允许请求头 `content-type`、`x-cos-acl`、`x-cos-forbid-overwrite`。CORS 不授予对象访问权限。iOS 原生请求不受浏览器 CORS 限制。
+浏览器工单附件通过同源 `PUT /api/applink/v2/request-upload-sessions/{sessionID}/assets/{assetID}` 上传，携带 `X-Template-Upload-Token`，服务端校验会话、附件归属、类型、大小和 SHA256 后写入 COS。因此内置表单不依赖 COS CORS。旧的签名上传 URL 仍保留，使用它直接上传的第三方网页仍需配置 COS CORS。iOS 原生签名上传不受浏览器 CORS 限制。
 
 ## 验证和启用
 

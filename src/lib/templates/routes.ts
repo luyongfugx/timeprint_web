@@ -9,7 +9,7 @@ import {
   assetResponse,
   normalizeCode,
 } from "./access-service";
-import { newSession, session, registerAsset, completeSession } from "./asset-service";
+import { newSession, session, registerAsset, completeSession, getAsset } from "./asset-service";
 import { configured, enabled } from "./config";
 import {
   createSchema,
@@ -27,12 +27,13 @@ import {
   uuid,
   PRIVATE_EXPIRY_SECONDS,
 } from "./contracts";
-import { actorHash } from "./crypto";
+import { actorHash, sha256 } from "./crypto";
 import { TemplateError } from "./errors";
-import { body, endpoint, json } from "./http";
+import { body, boundedBytes, endpoint, json } from "./http";
 import { publish } from "./publish-service";
 import { rateLimit } from "./repository";
 import { search, discovery, queryCode } from "./search-service";
+import { uploadObject, downloadObject } from "./storage";
 import { recordUse, submitReport, submitRequest } from "./transactions";
 
 function flag(name: string) {
@@ -106,6 +107,30 @@ export async function v2Route(req: Request, path: string[]) {
         const result = await submitReport(path[1], input);
         return json(result.receipt, result.replay ? 200 : 201);
       }
+    }
+    if (req.method === "PUT" && path.length === 4 && path[0] === "request-upload-sessions" && path[2] === "assets") {
+      flag("REPORT");
+      const s = await session(path[1], req.headers.get("X-Template-Upload-Token") ?? "", "evidence");
+      if (s.state !== "open" || !uuid.safeParse(path[3]).success) throw new TemplateError("RESOURCE_INVALID", 422);
+      const asset = await getAsset(path[3]);
+      if (
+        asset.upload_session_id !== s.id ||
+        asset.kind !== "evidence" ||
+        asset.state !== "staging" ||
+        req.headers.get("content-type") !== asset.mime
+      )
+        throw new TemplateError("RESOURCE_INVALID", 422);
+      const bytes = await boundedBytes(req.body, Math.min(Number(asset.bytes), 5 * 1024 * 1024));
+      if (bytes.length !== Number(asset.bytes) || sha256(bytes) !== asset.sha256)
+        throw new TemplateError("RESOURCE_INVALID", 422);
+      // A retry may follow a lost upload response. Accept only identical existing bytes.
+      try {
+        await uploadObject(asset.object_key, bytes, asset.mime);
+      } catch (error) {
+        const existing = await downloadObject(asset.object_key, Number(asset.bytes)).catch(() => null);
+        if (!existing || sha256(existing) !== asset.sha256) throw error;
+      }
+      return json({ uploaded: true, assetID: asset.id });
     }
     if (req.method === "POST" && ["upload-sessions", "request-upload-sessions"].includes(path[0])) {
       const evidence = path[0] === "request-upload-sessions";

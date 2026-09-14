@@ -22,7 +22,7 @@ export async function POST(req: Request) {
         req,
         z
           .object({
-            watermarkName: text(100, 1),
+            watermarkName: text(255, 1),
             companyName: text(100).optional(),
             coverImageUrl: z.string().url().max(2048),
             jsonDownloadUrl: z.string().url().max(2048),
