@@ -37,7 +37,7 @@ GRANT SELECT, INSERT, DELETE ON timeprint_share_wm.admin_sessions TO 'timeprint_
 - `POST /api/auth/logout`：删除服务端会话并清空 Cookie。
 - 页面服务端检查会话；每个管理接口再次检查。不能靠伪造 Cookie 存在绕过认证。
 - 每次验证当前 enabled、role 和密码哈希版本：停用账号或修改密码立即使旧会话不可用；moderator 不能执行需 admin 的操作。
-- 登录/退出/管理写请求校验 Origin。生产设置 `TEMPLATE_ADMIN_ORIGIN=https://你的后台域名`，默认 team.timeprint.net；本地未配置时匹配请求 Origin。
+- 登录/退出/管理写请求校验 Origin。生产设置 `TEMPLATE_ADMIN_ORIGIN=https://你的后台域名`，默认允许 https://wm.timeprint.net 和 https://team.timeprint.net；本地未配置时匹配请求 URL 的 origin。
 - 登录限流：同邮箱每 15 分钟最多 10 次请求，全站每 15 分钟最多 200 次请求，超限 429；无效邮箱/密码和停用账号统一提示。
 
 ## 修改密码
@@ -58,3 +58,7 @@ env -u DATABASE_URL -u ADMIN_EMAIL -u ADMIN_PASSWORD \
 新增认证测试覆盖错误密码、来源检查、邮箱规范化、哈希会话、登出撤销、过期、停用、改密失效、角色校验及登录限流。测试只允许明确启用的本地 *_test 库。
 
 此次没有连接 43.156.199.205，也没有在远程库创建账号。实际部署需要先执行上述管理员迁移、增加权限，并以新版本重启后台。
+
+## wm.timeprint.net 登录提示“请求来源无效”
+
+在实际部署环境设置 `TEMPLATE_ADMIN_ORIGIN=https://wm.timeprint.net,https://team.timeprint.net`，然后重新部署或重启 Node.js 服务。多个允许的来源以英文逗号分隔，不填登录页路径或通配符。两个域名分别使用各自的登录 Cookie，需要分别登录。该变量同时用于登录、退出及后台写操作的来源校验；不要关闭校验。`TEMPLATE_API_ORIGIN` 是 iOS API 对外地址，不要为了修复后台登录一并修改。

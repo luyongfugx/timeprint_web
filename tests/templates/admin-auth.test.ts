@@ -7,7 +7,7 @@ import { hashPassword, verifyPassword } from "../../scripts/lib/password.mjs";
 import { POST as login } from "../../src/app/api/auth/login/route";
 import { POST as logout } from "../../src/app/api/auth/logout/route";
 import { GET as session } from "../../src/app/api/auth/session/route";
-import { digest, readSession, sessionCookie } from "../../src/lib/auth/session";
+import { assertOrigin, digest, readSession, sessionCookie } from "../../src/lib/auth/session";
 import { database } from "../../src/lib/prisma";
 import { adminAuth } from "../../src/lib/templates/admin-auth";
 
@@ -50,6 +50,33 @@ test("admin: scrypt verifies passwords without plaintext storage", async () => {
   assert.equal(await verifyPassword(password, hash), true);
   assert.equal(await verifyPassword("wrong", hash), false);
   assert.equal(await verifyPassword(password, "malformed"), false);
+});
+test("admin: production supports both admin domains and rejects foreign or missing origins", () => {
+  const previousOrigin = process.env.TEMPLATE_ADMIN_ORIGIN;
+  const previousMode = process.env.NODE_ENV;
+  try {
+    Object.assign(process.env, { NODE_ENV: "production" });
+    delete process.env.TEMPLATE_ADMIN_ORIGIN;
+    assert.doesNotThrow(() => assertOrigin(request("login", {}, undefined, "https://wm.timeprint.net")));
+    assert.doesNotThrow(() => assertOrigin(request("login", {}, undefined, "https://team.timeprint.net")));
+    assert.throws(() => assertOrigin(request("login", {}, undefined, "https://evil.invalid")), { code: "FORBIDDEN" });
+    assert.throws(() => assertOrigin(new Request("https://wm.timeprint.net/api/auth/login")), { code: "FORBIDDEN" });
+    process.env.TEMPLATE_ADMIN_ORIGIN = " https://wm.timeprint.net/ , https://team.timeprint.net/ ";
+    assert.doesNotThrow(() => assertOrigin(request("login", {}, undefined, "https://wm.timeprint.net")));
+    assert.doesNotThrow(() => assertOrigin(request("login", {}, undefined, "https://team.timeprint.net")));
+    assert.throws(() => assertOrigin(request("login", {}, undefined, "https://wm.timeprint.net.evil.invalid")), {
+      code: "FORBIDDEN",
+    });
+    process.env.TEMPLATE_ADMIN_ORIGIN = origin;
+    assert.throws(() => assertOrigin(request("login", {}, undefined, "https://wm.timeprint.net")), {
+      code: "FORBIDDEN",
+    });
+  } finally {
+    if (previousOrigin === undefined) delete process.env.TEMPLATE_ADMIN_ORIGIN;
+    else process.env.TEMPLATE_ADMIN_ORIGIN = previousOrigin;
+    if (previousMode === undefined) Reflect.deleteProperty(process.env, "NODE_ENV");
+    else Object.assign(process.env, { NODE_ENV: previousMode });
+  }
 });
 test("admin: login, normalized email, hashed session, logout and origin checks", { skip: !active }, async () => {
   assert.equal((await login(request("login", { email, password }, undefined, "https://evil.invalid"))).status, 403);

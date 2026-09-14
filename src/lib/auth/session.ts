@@ -15,10 +15,18 @@ export const publicUser = (account: { id: string; email: string; role: string })
   role: account.role,
 });
 export function assertOrigin(req: Request) {
-  const expected =
-    process.env.TEMPLATE_ADMIN_ORIGIN ??
-    (process.env.NODE_ENV === "production" ? "https://team.timeprint.net" : new URL(req.url).origin);
-  if (req.headers.get("origin") !== expected) throw new TemplateError("FORBIDDEN", 403, "请求来源无效");
+  const configured = (process.env.TEMPLATE_ADMIN_ORIGIN ?? "")
+    .split(",")
+    .map((value) => value.trim().replace(/\/$/, ""))
+    .filter(Boolean);
+  const allowed =
+    configured.length > 0
+      ? configured
+      : process.env.NODE_ENV === "production"
+        ? ["https://wm.timeprint.net", "https://team.timeprint.net"]
+        : [new URL(req.url).origin];
+  const origin = req.headers.get("origin");
+  if (!origin || !allowed.includes(origin)) throw new TemplateError("FORBIDDEN", 403, "请求来源无效");
 }
 export function tokenFromRequest(req: Request) {
   return req.headers
