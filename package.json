@@ -21,7 +21,8 @@
     "prisma:pull": "node --env-file-if-exists=.env.local scripts/prisma.mjs db pull",
     "prisma:studio": "node --env-file-if-exists=.env.local scripts/prisma.mjs studio",
     "admin:init": "node --env-file-if-exists=.env.local scripts/migrate-admin-login.mjs",
-    "test:admin": "node --conditions=react-server --import tsx --test tests/templates/admin-auth.test.ts"
+    "test:admin": "node --conditions=react-server --import tsx --test tests/templates/admin-auth.test.ts",
+    "test:storage": "node --conditions=react-server --import tsx --test tests/templates/storage.test.ts"
   },
   "lint-staged": {
     "*.{js,ts,jsx,tsx}": [
@@ -35,13 +36,13 @@
     "@dnd-kit/utilities": "^3.2.2",
     "@hookform/resolvers": "^3.10.0",
     "@prisma/client": "6.19.3",
-    "@supabase/supabase-js": "^2.56.0",
     "@tanstack/react-query": "^5.86.0",
     "@tanstack/react-table": "^8.21.3",
     "axios": "^1.11.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
+    "cos-nodejs-sdk-v5": "3.0.0",
     "date-fns": "^3.6.0",
     "embla-carousel-react": "^8.6.0",
     "eslint-plugin-unicorn": "^56.0.1",

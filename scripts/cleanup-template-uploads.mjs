@@ -1,12 +1,10 @@
-import { createClient } from "@supabase/supabase-js";
+import { cosConfig, cosConfigured, createCOS } from "./lib/cos.mjs";
 import { createDatabase, databaseConfigured } from "./lib/prisma.mjs";
-if (!databaseConfigured() || !process.env.SUPABASE_SERVICE_ROLE_KEY)
-  throw new Error("Configure MySQL and private storage first.");
+if (!databaseConfigured() || !cosConfigured()) throw new Error("Configure MySQL and private storage first.");
 const apply = process.argv.includes("--apply");
 const c = createDatabase();
-const storage = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, {
-  auth: { persistSession: false, autoRefreshToken: false },
-}).storage.from(process.env.TEMPLATE_ASSETS_BUCKET ?? "template-assets-v2");
+const storage = createCOS();
+const { Bucket, Region, Prefix } = cosConfig();
 try {
   const sessions = await c.$queryRawUnsafe(
     "SELECT s.id FROM template_upload_sessions s WHERE s.state<>'committed' AND s.created_at<UTC_TIMESTAMP()-INTERVAL 24 HOUR AND NOT EXISTS (SELECT 1 FROM template_assets a WHERE a.upload_session_id=s.id AND (a.template_id IS NOT NULL OR a.request_id IS NOT NULL)) LIMIT 100",
@@ -15,13 +13,15 @@ try {
   if (apply) {
     for (const s of sessions) {
       // Session deadline already passed by >=23h; no new complete/publish can commit.
-      for (const prefix of [`staging/${s.id}`, `sealed/${s.id}`]) {
+      if (!/^[a-f0-9-]{36}$/i.test(s.id)) throw new Error("Invalid session ID");
+      for (const prefix of [`${Prefix}/staging/${s.id}/`, `${Prefix}/sealed/${s.id}/`]) {
         while (true) {
-          const { data, error } = await storage.list(prefix, { limit: 100 });
-          if (error) throw new Error("Storage listing failed; database records retained.");
-          if (!data.length) break;
-          const removed = await storage.remove(data.map((o) => `${prefix}/${o.name}`));
-          if (removed.error) throw new Error("Storage cleanup failed; database records retained.");
+          const data = await storage.getBucket({ Bucket, Region, Prefix: prefix, MaxKeys: 100 });
+          if (!data.Contents?.length) break;
+          for (const object of data.Contents) {
+            if (!object.Key.startsWith(prefix)) throw new Error("Cleanup object outside session prefix");
+            await storage.deleteObject({ Bucket, Region, Key: object.Key });
+          }
         }
       }
       await c.$transaction(async (tx) => {

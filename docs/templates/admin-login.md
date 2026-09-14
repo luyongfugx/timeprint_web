@@ -1,6 +1,6 @@
 # MySQL 管理员邮箱密码登录
 
-后台已不再调用 Supabase Auth。管理员从 `admin_accounts` 登录；会话存于 `admin_sessions`。Supabase SDK 只保留私有文件 Storage 用途。旧 `template_admins` 保留历史结构，不再决定登录或权限。
+后台已不再调用 Supabase Auth。管理员从 `admin_accounts` 登录；会话存于 `admin_sessions`。Supabase SDK 已移除，文件使用腾讯云 COS。旧 `template_admins` 保留历史结构，不再决定登录或权限。
 
 ## 初始化
 

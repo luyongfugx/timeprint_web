@@ -4,14 +4,15 @@ import { randomBytes, randomUUID } from "node:crypto";
 import sharp from "sharp";
 import { z } from "zod";
 
-import { createAdminClient } from "../supabaseAdmin";
-
-import { apiBase, bucketName } from "./config";
+import { apiBase } from "./config";
 import { registerAssetSchema } from "./contracts";
 import { actorHash, canonical, equalSecret, sha256 } from "./crypto";
-import { TemplateError, unavailable } from "./errors";
+import { TemplateError } from "./errors";
 import { mapImages, parsePayload, payloadBytes } from "./payload";
 import { rows, write, rateLimit, registerAssetRecord, completeSessionRecord, parseJSON } from "./repository";
+import { downloadObject, signedUpload, uploadObject } from "./storage";
+
+export { downloadObject } from "./storage";
 
 export type Asset = {
   id: string;
@@ -99,25 +100,11 @@ export async function registerAsset(s: Session, token: string, input: z.infer<ty
     ...input,
     objectKey: `staging/${s.id}/${randomUUID()}`,
   });
-  const { data, error } = await createAdminClient()
-    .storage.from(bucketName())
-    .createSignedUploadUrl(asset.object_key, { upsert: false });
-  if (error || !data) unavailable();
-  // Supabase Storage's signed upload TTL is fixed at two hours in this SDK.
-  // The session's one-hour deadline and sealed copy enforce publication limits.
   return {
     assetID: asset.id,
     assetReferenceURL: referenceURL(s.id, asset.id),
-    uploadURL: data.signedUrl,
-    uploadHeaders: { "Content-Type": asset.mime, "x-upsert": "false" },
-    uploadExpiresAt: new Date(Date.now() + 7_200_000).toISOString(),
+    ...(await signedUpload(asset.object_key, asset.mime, s.expires_at)),
   };
-}
-export async function downloadObject(key: string, max: number) {
-  const { data, error } = await createAdminClient().storage.from(bucketName()).download(key);
-  if (error || !data) throw new TemplateError("RESOURCE_NOT_READY", 503, "A template resource is not ready.", true);
-  if (data.size > max) throw new TemplateError("PAYLOAD_TOO_LARGE", 413);
-  return Buffer.from(await data.arrayBuffer());
 }
 export async function imageMetadata(bytes: Buffer, expected?: string) {
   try {
@@ -199,10 +186,7 @@ export async function completeSession(
   for (const asset of assets) {
     const bytes = contents.get(asset.id)!;
     const key = `sealed/${s.id}/${randomUUID()}`;
-    const { error: uploadError } = await createAdminClient()
-      .storage.from(bucketName())
-      .upload(key, bytes, { contentType: asset.mime, upsert: false });
-    if (uploadError) unavailable();
+    await uploadObject(key, bytes, asset.mime);
     sealed.push({
       id: asset.id,
       sealedKey: key,

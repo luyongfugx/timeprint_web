@@ -3,15 +3,14 @@ import { randomUUID } from "node:crypto";
 import { resolve4 } from "node:dns/promises";
 import { request } from "node:https";
 
-import { createAdminClient } from "../supabaseAdmin";
-
 import { imageMetadata, newSession, referenceURL, session, completeSession } from "./asset-service";
-import { apiBase, bucketName } from "./config";
+import { apiBase } from "./config";
 import { MAX_IMAGE_BYTES, MAX_PAYLOAD_BYTES, MAX_SESSION_BYTES, type TemplateRow } from "./contracts";
 import { sha256 } from "./crypto";
-import { TemplateError, unavailable } from "./errors";
+import { TemplateError } from "./errors";
 import { mapImages, parsePayload, payloadBytes } from "./payload";
 import { registerAssetRecord } from "./repository";
+import { uploadObject } from "./storage";
 
 export function publicIPv4(address: string) {
   const parts = address.split(".").map(Number);
@@ -130,10 +129,7 @@ export async function legacySnapshot(
       sha256: sha256(bytes),
       objectKey: `staging/${s.id}/${randomUUID()}`,
     });
-    const { error } = await createAdminClient()
-      .storage.from(bucketName())
-      .upload(asset.object_key, bytes, { contentType: mime, upsert: false });
-    if (error) unavailable();
+    await uploadObject(asset.object_key, bytes, mime);
     return asset.id;
   };
   const coverID = await save(await load(input.coverImageURL, "cover"), "cover");

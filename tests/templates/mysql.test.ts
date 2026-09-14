@@ -35,25 +35,24 @@ process.env.TEMPLATE_PUBLIC_ENABLED = "true";
 process.env.TEMPLATE_PRIVATE_ENABLED = "true";
 process.env.TEMPLATE_SEARCH_ENABLED = "true";
 process.env.TEMPLATE_REPORT_ENABLED = "true";
-process.env.NEXT_PUBLIC_SUPABASE_URL = "https://storage.test.invalid";
-process.env.SUPABASE_SERVICE_ROLE_KEY = "local-test-service-key";
+process.env.TEMPLATE_COS_BUCKET = "fixture-1234567890";
+process.env.TEMPLATE_COS_REGION = "ap-singapore";
+process.env.TEMPLATE_COS_SECRET_ID = "test-secret-id";
+process.env.TEMPLATE_COS_SECRET_KEY = "test-secret-key";
 // Storage HTTP contract double; MySQL transactions below use a real MySQL server.
 const objects = new Map<string, Buffer>();
 const originalFetch = globalThis.fetch;
 if (active)
   globalThis.fetch = async (input, init) => {
     const url = new URL(typeof input === "string" ? input : input instanceof URL ? input.href : input.url);
-    if (url.hostname !== "storage.test.invalid") throw new Error("Unexpected external network access in tests");
+    if (url.hostname !== "fixture-1234567890.cos.ap-singapore.myqcloud.com")
+      throw new Error("Unexpected external network access in tests");
     const method = init?.method ?? "GET";
-    const signed = "/storage/v1/object/upload/sign/";
-    const ordinary = "/storage/v1/object/";
-    if (url.pathname.startsWith(signed) && method === "POST")
-      return Response.json({ url: url.pathname.replace("/storage/v1", "") + "?token=fixture" });
-    const key = decodeURIComponent(
-      url.pathname.slice(url.pathname.startsWith(signed) ? signed.length : ordinary.length),
-    );
-    if (method === "POST" || method === "PUT") {
-      if (objects.has(key) && method === "POST") return Response.json({ message: "Duplicate" }, { status: 409 });
+    const key = decodeURIComponent(url.pathname);
+    if (method === "PUT") {
+      const headers = new Headers(init?.headers);
+      if (headers.get("x-cos-forbid-overwrite") === "true" && objects.has(key))
+        return new Response("Conflict", { status: 409 });
       const b = init?.body;
       const bytes = b instanceof Blob ? Buffer.from(await b.arrayBuffer()) : Buffer.from(b as Uint8Array);
       objects.set(key, bytes);

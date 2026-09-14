@@ -37,7 +37,9 @@
     ".next-timeprint-preview/types/**/*.ts",
     ".next-timeprint-next16/types/**/*.ts",
     ".next-timeprint-next16/dev/types/**/*.ts",
-    ".next-timeprint/dev/types/**/*.ts"
+    ".next-timeprint/dev/types/**/*.ts",
+    ".next-timeprint-cos/types/**/*.ts",
+    ".next-timeprint-cos/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules",

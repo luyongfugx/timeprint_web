@@ -1,6 +1,6 @@
 # Timeprint 分享水印 v2 交付说明
 
-本次实现以用户提供的 `template-platform-v2.examples.json` 和 2026-09-13 修订 3 交接文档为协议参考；按用户后续要求，**分享业务改用 MySQL，团队版代码移除，后台登录改为 MySQL 邮箱密码认证**。文件存储仍采用独立的 Supabase 私有桶，与 MySQL 数据库分开配置。
+本次实现以用户提供的 `template-platform-v2.examples.json` 和 2026-09-13 修订 3 交接文档为协议参考；按用户后续要求，**分享业务改用 MySQL，团队版代码移除，后台登录改为 MySQL 邮箱密码认证**。文件存储使用腾讯云 COS 的独立目录 `template-assets-v2/`，与 MySQL 数据库分开配置，已移除 Supabase SDK。
 
 这是代码与本地验证交付，未执行生产迁移、历史数据导入、Storage 权限变更或域名部署，也未修改 iOS 仓库。
 
@@ -43,7 +43,7 @@ MySQL 连接现由 Prisma Client 6.19.3 管理，运行时和维护脚本共用�
 
 ## MySQL 部署前检查
 
-需要 **MySQL 8.0.16+ / InnoDB / utf8mb4 / UTC**。MySQL 5.7 和 MariaDB 未作为支持目标。现有 PostgreSQL 业务迁移已撤下；`docs/templates/storage-policy.sql` 仅为 Supabase Storage 的 RLS 策略，不是分享数据库迁移。
+需要 **MySQL 8.0.16+ / InnoDB / utf8mb4 / UTC**。MySQL 5.7 和 MariaDB 未作为支持目标。现有 PostgreSQL 业务迁移已撤下；旧 Supabase Storage 策略脚本已删除，不再需要执行。
 
 本地原仓库 `.env.local` 只有 Supabase 公钥，未提供实际 MySQL 连接或服务端 Storage key。因此生产表结构、MySQL 版本、旧数据所在库尚未验证。旧 Supabase 项目的只读 schema 请求返回 401，未取得字段/权限基线，也未读取模板记录。**切换部署前，必须将实际已有分享记录导入目标 MySQL，保留 id、share_code、created_at、expire_time、资源源 URL；否则旧码会在新库查不到。脚本不会自动跨库搬运。**
 
@@ -69,17 +69,15 @@ MySQL 连接现由 Prisma Client 6.19.3 管理，运行时和维护脚本共用�
 
 ## 私有存储
 
-使用同一个已有 Supabase 项目的 server-only `SUPABASE_SERVICE_ROLE_KEY`。代码只将其用于 Storage；分享业务查询全部为 MySQL。登录不再依赖 Supabase 公钥；NEXT_PUBLIC_SUPABASE_URL 仍用于 Storage。
+使用 COS 桶 `wm-1330977225`，地域 `ap-singapore`。新版资源仅位于 `template-assets-v2/staging/` 和 `template-assets-v2/sealed/`；旧目录不变。部署需 `TEMPLATE_COS_SECRET_ID`、`TEMPLATE_COS_SECRET_KEY`，不再需要任何 Supabase 环境变量。详见 [COS 配置与验证](./cos-storage.md)。
 
 ```bash
 node --env-file=.env.local scripts/prepare-template-storage.mjs
-# 审查后由部署人员创建独立私有桶：
+# 写入一个临时测试对象，验证私有读写和匿名拒绝，再删除测试对象：
 node --env-file=.env.local scripts/prepare-template-storage.mjs --apply
 ```
 
-审查现有 Storage policies；不能只看 bucket.public=false。如果存在通配 authenticated/anon 策略，按 `storage-policy.sql` 为新桶建立 restrictive 隔离，再验证 anon/普通登录用户无法直接读写。不要改变旧 COS 桶 ACL，不要删除共享旧 Logo。
-
-注册回执的 `uploadURL` 使用 Supabase SDK 原生签名 PUT。当前 SDK 固定有效期 **2 小时**，回执如实返回这个期限；上传会话仍在 **1 小时**后失效。complete 对读到的实际字节验证摘要后上传到新的 sealed key，旧凭据不能改写 sealed。资源注册 URL 仅作引用，不提供匿名下载。
+注册回执使用腾讯官方 SDK 生成签名 PUT，签名包含 Content-Type、私有 ACL、禁止覆盖请求头。有效期不超过剩余会话时间且最多 1 小时。complete 校验上传字节摘要并保存到全新的 sealed key，旧上传凭据不能改写正式文件。服务端下载受字节上限、15 秒超时限制；不跟随重定向。分享权限、到期和下架仍由业务 API 检查。
 
 旧 public COS 输入仅允许 `TEMPLATE_ALLOWED_LEGACY_ASSET_HOSTS` 中的精确域名和 `/ugc_cover/`、`/ugc_json/`、`/ugc_logo/` 文件路径；域名白名单默认空。https、无用户信息、无非标准端口，拒绝重定向，DNS 公网 IPv4 校验并固定连接地址，下载上限和超时。private 必须使用上传会话，不能把旧公开 URL 包装成私密。
 
@@ -117,7 +115,7 @@ npm run build
 
 最终验证：13 项测试全部通过，生产构建通过，全项目 ESLint 无 error，`git diff --check` 通过。
 
-集成测试使用真实 MySQL 8.0.30；Storage 使用 HTTP 合同测试替身，并非线上 Supabase 实测。覆盖 20 并发发布只有一个回执/记录、20 并发使用只计一次、改 staging 不改 sealed、错误 token/跨 session、public 历史删除/private 保留、期限边界、恢复不续期、举报下架、请求幂等、证据归属、游标签名/稳定分页、JSON 摘要、错误合同，并验证超过 JavaScript 安全整数范围的 bigint ID 与旧接口包裹兼容。
+集成测试使用真实 MySQL 8.0.30；Storage 使用 HTTP 合同测试替身，并非线上 COS 实测。覆盖 20 并发发布只有一个回执/记录、20 并发使用只计一次、改 staging 不改 sealed、错误 token/跨 session、public 历史删除/private 保留、期限边界、恢复不续期、举报下架、请求幂等、证据归属、游标签名/稳定分页、JSON 摘要、错误合同，并验证超过 JavaScript 安全整数范围的 bigint ID 与旧接口包裹兼容。
 
 浏览器验证：分享缺码状态、联系删除入口、公司需求表单切换。HTTP 验证：无配置 capabilities 返回空范围、未登录管理请求 401、AASA JSON 200、已移除 teams/checkins/mobile 路由 404。没有真实用户数据、生产部署、真实 Storage ACL 或 iOS 相机导入链路的验证结论。
 

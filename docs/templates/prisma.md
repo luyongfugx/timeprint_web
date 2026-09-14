@@ -1,6 +1,6 @@
 # Prisma 数据库接入说明
 
-本次将 MySQL 连接和事务交给 Prisma Client 6.19.3，移除 mysql2。数据库仍为 MySQL 8.0.16+；后台认证现在使用 MySQL 管理员表，私有 Storage 继续使用 Supabase。本次未连接或迁移生产库，也未导出 Supabase。
+本次将 MySQL 连接和事务交给 Prisma Client 6.19.3，移除 mysql2。数据库仍为 MySQL 8.0.16+；后台认证现在使用 MySQL 管理员表，文件存储已改为腾讯云 COS 独立目录。本次未连接或迁移生产库，也未导出 Supabase。
 
 ## 代码结构
 

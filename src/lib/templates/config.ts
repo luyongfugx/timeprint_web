@@ -1,3 +1,4 @@
+import { cosConfigured } from "../../../scripts/lib/cos.mjs";
 import { databaseConfigured } from "../../../scripts/lib/database-config.mjs";
 
 import { unavailable } from "./errors";
@@ -13,15 +14,14 @@ function origin(name: string, fallback: string) {
     unavailable();
   return u.origin;
 }
-export const apiOrigin = () => origin("TEMPLATE_API_ORIGIN", "https://team.timeprint.net");
+export const apiOrigin = () => origin("TEMPLATE_API_ORIGIN", "https://wm.timeprint.net");
 export const shareOrigin = () => origin("TEMPLATE_SHARE_ORIGIN", "https://share.timeprint.net");
 export const apiBase = () => `${apiOrigin()}/api/applink/v2`;
-export const bucketName = () => process.env.TEMPLATE_ASSETS_BUCKET ?? "template-assets-v2";
 export const enabled = (name: string) => process.env[`TEMPLATE_${name}_ENABLED`] === "true";
 export const configured = () =>
   !!(
     databaseConfigured() &&
-    process.env.SUPABASE_SERVICE_ROLE_KEY &&
+    cosConfigured() &&
     (process.env.TEMPLATE_ACTOR_HMAC_KEY?.length ?? 0) >= 32 &&
     (process.env.TEMPLATE_CURSOR_SIGNING_KEY?.length ?? 0) >= 32
   );
