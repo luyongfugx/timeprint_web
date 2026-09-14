@@ -1,0 +1,677 @@
+{
+  "source": "gps_map_camera/iOSTimeGPS/Resource/Language/*.lproj",
+  "languages": [
+    {
+      "code": "af",
+      "name": "Afrikaans",
+      "search": "南非荷兰语",
+      "group": "非洲"
+    },
+    {
+      "code": "ak",
+      "name": "Akan",
+      "search": "阿肯语",
+      "group": "非洲"
+    },
+    {
+      "code": "am",
+      "name": "አማርኛ",
+      "search": "阿姆哈拉语",
+      "group": "非洲"
+    },
+    {
+      "code": "ar",
+      "name": "العربية",
+      "search": "阿拉伯语",
+      "group": "亚洲"
+    },
+    {
+      "code": "arz",
+      "name": "Egyptian Arabic",
+      "search": "arz",
+      "group": "非洲"
+    },
+    {
+      "code": "as",
+      "name": "অসমীয়া",
+      "search": "阿萨姆语",
+      "group": "亚洲"
+    },
+    {
+      "code": "az",
+      "name": "Azərbaycan",
+      "search": "阿塞拜疆语",
+      "group": "亚洲"
+    },
+    {
+      "code": "be",
+      "name": "беларуская",
+      "search": "白俄罗斯语",
+      "group": "欧洲"
+    },
+    {
+      "code": "bg",
+      "name": "български",
+      "search": "保加利亚语",
+      "group": "欧洲"
+    },
+    {
+      "code": "bn",
+      "name": "বাংলা",
+      "search": "孟加拉语",
+      "group": "亚洲"
+    },
+    {
+      "code": "bs",
+      "name": "bosanski",
+      "search": "波斯尼亚语",
+      "group": "欧洲"
+    },
+    {
+      "code": "ca",
+      "name": "català",
+      "search": "加泰罗尼亚语",
+      "group": "欧洲"
+    },
+    {
+      "code": "ceb",
+      "name": "Cebuano",
+      "search": "宿务语",
+      "group": "亚洲"
+    },
+    {
+      "code": "cs",
+      "name": "Čeština",
+      "search": "捷克语",
+      "group": "欧洲"
+    },
+    {
+      "code": "cy",
+      "name": "Cymraeg",
+      "search": "威尔士语",
+      "group": "欧洲"
+    },
+    {
+      "code": "da",
+      "name": "Dansk",
+      "search": "丹麦语",
+      "group": "欧洲"
+    },
+    {
+      "code": "de",
+      "name": "Deutsch",
+      "search": "德语",
+      "group": "欧洲"
+    },
+    {
+      "code": "dv",
+      "name": "ދިވެހި",
+      "search": "迪维希语",
+      "group": "亚洲"
+    },
+    {
+      "code": "el",
+      "name": "Ελληνικά",
+      "search": "希腊语",
+      "group": "欧洲"
+    },
+    {
+      "code": "en",
+      "name": "English",
+      "search": "英语",
+      "group": "欧洲"
+    },
+    {
+      "code": "es",
+      "name": "Español",
+      "search": "西班牙语",
+      "group": "欧洲"
+    },
+    {
+      "code": "es-ES",
+      "name": "español de España",
+      "search": "欧洲西班牙语",
+      "group": "欧洲"
+    },
+    {
+      "code": "et",
+      "name": "eesti",
+      "search": "爱沙尼亚语",
+      "group": "欧洲"
+    },
+    {
+      "code": "eu",
+      "name": "euskara",
+      "search": "巴斯克语",
+      "group": "欧洲"
+    },
+    {
+      "code": "fa",
+      "name": "فارسی",
+      "search": "波斯语",
+      "group": "亚洲"
+    },
+    {
+      "code": "fi",
+      "name": "Suomi",
+      "search": "芬兰语",
+      "group": "欧洲"
+    },
+    {
+      "code": "fil",
+      "name": "Filipino",
+      "search": "菲律宾语",
+      "group": "亚洲"
+    },
+    {
+      "code": "fil-PH",
+      "name": "Filipino (Pilipinas)",
+      "search": "菲律宾语（菲律宾）",
+      "group": "亚洲"
+    },
+    {
+      "code": "fr",
+      "name": "Français",
+      "search": "法语",
+      "group": "欧洲"
+    },
+    {
+      "code": "ga",
+      "name": "Gaeilge",
+      "search": "爱尔兰语",
+      "group": "欧洲"
+    },
+    {
+      "code": "gd",
+      "name": "Gàidhlig",
+      "search": "苏格兰盖尔语",
+      "group": "欧洲"
+    },
+    {
+      "code": "gl",
+      "name": "galego",
+      "search": "加利西亚语",
+      "group": "欧洲"
+    },
+    {
+      "code": "gu",
+      "name": "ગુજરાતી",
+      "search": "古吉拉特语",
+      "group": "亚洲"
+    },
+    {
+      "code": "ha",
+      "name": "Hausa",
+      "search": "豪萨语",
+      "group": "非洲"
+    },
+    {
+      "code": "he",
+      "name": "עברית",
+      "search": "希伯来语",
+      "group": "亚洲"
+    },
+    {
+      "code": "hi",
+      "name": "हिन्दी",
+      "search": "印地语",
+      "group": "亚洲"
+    },
+    {
+      "code": "hr",
+      "name": "hrvatski",
+      "search": "克罗地亚语",
+      "group": "欧洲"
+    },
+    {
+      "code": "ht",
+      "name": "Haitian Creole",
+      "search": "海地克里奥尔语",
+      "group": "美洲与大洋洲"
+    },
+    {
+      "code": "hu",
+      "name": "Magyar",
+      "search": "匈牙利语",
+      "group": "欧洲"
+    },
+    {
+      "code": "hy",
+      "name": "Հայերեն",
+      "search": "亚美尼亚语",
+      "group": "亚洲"
+    },
+    {
+      "code": "id",
+      "name": "Bahasa Indonesia",
+      "search": "印度尼西亚语",
+      "group": "亚洲"
+    },
+    {
+      "code": "ig",
+      "name": "Igbo",
+      "search": "伊博语",
+      "group": "非洲"
+    },
+    {
+      "code": "is",
+      "name": "íslenska",
+      "search": "冰岛语",
+      "group": "欧洲"
+    },
+    {
+      "code": "it",
+      "name": "Italiano",
+      "search": "意大利语",
+      "group": "欧洲"
+    },
+    {
+      "code": "ja",
+      "name": "日本語",
+      "search": "日语",
+      "group": "亚洲"
+    },
+    {
+      "code": "jv",
+      "name": "Basa Jawa",
+      "search": "爪哇语",
+      "group": "亚洲"
+    },
+    {
+      "code": "ka",
+      "name": "ქართული",
+      "search": "格鲁吉亚语",
+      "group": "亚洲"
+    },
+    {
+      "code": "kk-KZ",
+      "name": "қазақ тілі (Қазақстан)",
+      "search": "哈萨克语（哈萨克斯坦）",
+      "group": "亚洲"
+    },
+    {
+      "code": "km-KH",
+      "name": "ខ្មែរ (កម្ពុជា)",
+      "search": "高棉语（柬埔寨）",
+      "group": "亚洲"
+    },
+    {
+      "code": "kn",
+      "name": "ಕನ್ನಡ",
+      "search": "卡纳达语",
+      "group": "亚洲"
+    },
+    {
+      "code": "ko",
+      "name": "한국어",
+      "search": "韩语",
+      "group": "亚洲"
+    },
+    {
+      "code": "ku",
+      "name": "Kurdî",
+      "search": "库尔德语",
+      "group": "亚洲"
+    },
+    {
+      "code": "ky",
+      "name": "Кыргызча",
+      "search": "柯尔克孜语",
+      "group": "亚洲"
+    },
+    {
+      "code": "lb",
+      "name": "Lëtzebuergesch",
+      "search": "卢森堡语",
+      "group": "欧洲"
+    },
+    {
+      "code": "lo-LA",
+      "name": "ລາວ (ລາວ)",
+      "search": "老挝语（老挝）",
+      "group": "亚洲"
+    },
+    {
+      "code": "lt",
+      "name": "lietuvių",
+      "search": "立陶宛语",
+      "group": "欧洲"
+    },
+    {
+      "code": "lv",
+      "name": "latviešu",
+      "search": "拉脱维亚语",
+      "group": "欧洲"
+    },
+    {
+      "code": "mg",
+      "name": "Malagasy",
+      "search": "马拉加斯语",
+      "group": "非洲"
+    },
+    {
+      "code": "mi",
+      "name": "Māori",
+      "search": "毛利语",
+      "group": "美洲与大洋洲"
+    },
+    {
+      "code": "mk",
+      "name": "македонски",
+      "search": "马其顿语",
+      "group": "欧洲"
+    },
+    {
+      "code": "ml",
+      "name": "മലയാളം",
+      "search": "马拉雅拉姆语",
+      "group": "亚洲"
+    },
+    {
+      "code": "mn",
+      "name": "Монгол",
+      "search": "蒙古语",
+      "group": "亚洲"
+    },
+    {
+      "code": "mr",
+      "name": "मराठी",
+      "search": "马拉地语",
+      "group": "亚洲"
+    },
+    {
+      "code": "ms",
+      "name": "Bahasa Melayu",
+      "search": "马来语",
+      "group": "亚洲"
+    },
+    {
+      "code": "mt",
+      "name": "Malti",
+      "search": "马耳他语",
+      "group": "欧洲"
+    },
+    {
+      "code": "my",
+      "name": "မြန်မာ",
+      "search": "缅甸语",
+      "group": "亚洲"
+    },
+    {
+      "code": "nb",
+      "name": "norsk bokmål",
+      "search": "书面挪威语",
+      "group": "欧洲"
+    },
+    {
+      "code": "ne",
+      "name": "नेपाली",
+      "search": "尼泊尔语",
+      "group": "亚洲"
+    },
+    {
+      "code": "nl",
+      "name": "Nederlands",
+      "search": "荷兰语",
+      "group": "欧洲"
+    },
+    {
+      "code": "nn",
+      "name": "norsk nynorsk",
+      "search": "挪威尼诺斯克语",
+      "group": "欧洲"
+    },
+    {
+      "code": "ny",
+      "name": "Nyanja",
+      "search": "齐切瓦语",
+      "group": "非洲"
+    },
+    {
+      "code": "om",
+      "name": "Oromoo",
+      "search": "奥罗莫语",
+      "group": "非洲"
+    },
+    {
+      "code": "or",
+      "name": "ଓଡ଼ିଆ",
+      "search": "奥里亚语",
+      "group": "亚洲"
+    },
+    {
+      "code": "pa",
+      "name": "ਪੰਜਾਬੀ",
+      "search": "旁遮普语",
+      "group": "亚洲"
+    },
+    {
+      "code": "pl",
+      "name": "Polski",
+      "search": "波兰语",
+      "group": "欧洲"
+    },
+    {
+      "code": "pl-PL",
+      "name": "polski (Polska)",
+      "search": "波兰语（波兰）",
+      "group": "欧洲"
+    },
+    {
+      "code": "ps",
+      "name": "پښتو",
+      "search": "普什图语",
+      "group": "亚洲"
+    },
+    {
+      "code": "pt",
+      "name": "Português",
+      "search": "葡萄牙语",
+      "group": "欧洲"
+    },
+    {
+      "code": "pt-PT",
+      "name": "português europeu",
+      "search": "欧洲葡萄牙语",
+      "group": "欧洲"
+    },
+    {
+      "code": "ro",
+      "name": "Română",
+      "search": "罗马尼亚语",
+      "group": "欧洲"
+    },
+    {
+      "code": "ru",
+      "name": "Русский",
+      "search": "俄语",
+      "group": "欧洲"
+    },
+    {
+      "code": "rw",
+      "name": "Ikinyarwanda",
+      "search": "卢旺达语",
+      "group": "非洲"
+    },
+    {
+      "code": "si",
+      "name": "සිංහල",
+      "search": "僧伽罗语",
+      "group": "亚洲"
+    },
+    {
+      "code": "sk",
+      "name": "slovenčina",
+      "search": "斯洛伐克语",
+      "group": "欧洲"
+    },
+    {
+      "code": "sl",
+      "name": "slovenščina",
+      "search": "斯洛文尼亚语",
+      "group": "欧洲"
+    },
+    {
+      "code": "sn",
+      "name": "chiShona",
+      "search": "绍纳语",
+      "group": "非洲"
+    },
+    {
+      "code": "so",
+      "name": "Soomaali",
+      "search": "索马里语",
+      "group": "非洲"
+    },
+    {
+      "code": "sq",
+      "name": "shqip",
+      "search": "阿尔巴尼亚语",
+      "group": "欧洲"
+    },
+    {
+      "code": "sr",
+      "name": "српски",
+      "search": "塞尔维亚语",
+      "group": "欧洲"
+    },
+    {
+      "code": "st",
+      "name": "Sesotho",
+      "search": "南索托语",
+      "group": "非洲"
+    },
+    {
+      "code": "sv",
+      "name": "Svenska",
+      "search": "瑞典语",
+      "group": "欧洲"
+    },
+    {
+      "code": "sv-SE",
+      "name": "svenska (Sverige)",
+      "search": "瑞典语（瑞典）",
+      "group": "欧洲"
+    },
+    {
+      "code": "sw",
+      "name": "Kiswahili",
+      "search": "斯瓦希里语",
+      "group": "非洲"
+    },
+    {
+      "code": "ta",
+      "name": "தமிழ்",
+      "search": "泰米尔语",
+      "group": "亚洲"
+    },
+    {
+      "code": "te",
+      "name": "తెలుగు",
+      "search": "泰卢固语",
+      "group": "亚洲"
+    },
+    {
+      "code": "tg",
+      "name": "Тоҷикӣ",
+      "search": "塔吉克语",
+      "group": "亚洲"
+    },
+    {
+      "code": "th",
+      "name": "ไทย",
+      "search": "泰语",
+      "group": "亚洲"
+    },
+    {
+      "code": "ti",
+      "name": "ትግርኛ",
+      "search": "提格利尼亚语",
+      "group": "非洲"
+    },
+    {
+      "code": "tk",
+      "name": "Türkmençe",
+      "search": "土库曼语",
+      "group": "亚洲"
+    },
+    {
+      "code": "tr",
+      "name": "Türkçe",
+      "search": "土耳其语",
+      "group": "亚洲"
+    },
+    {
+      "code": "uk",
+      "name": "Українська",
+      "search": "乌克兰语",
+      "group": "欧洲"
+    },
+    {
+      "code": "ur",
+      "name": "اردو",
+      "search": "乌尔都语",
+      "group": "亚洲"
+    },
+    {
+      "code": "uz",
+      "name": "O‘zbekcha",
+      "search": "乌兹别克语",
+      "group": "亚洲"
+    },
+    {
+      "code": "vi",
+      "name": "Tiếng Việt",
+      "search": "越南语",
+      "group": "亚洲"
+    },
+    {
+      "code": "xh",
+      "name": "IsiXhosa",
+      "search": "科萨语",
+      "group": "非洲"
+    },
+    {
+      "code": "yi",
+      "name": "ייִדיש",
+      "search": "意第绪语",
+      "group": "欧洲"
+    },
+    {
+      "code": "yo",
+      "name": "Yorùbá",
+      "search": "约鲁巴语",
+      "group": "非洲"
+    },
+    {
+      "code": "zh-HK",
+      "name": "繁體中文（香港）",
+      "search": "中文（中国香港特别行政区）",
+      "group": "亚洲"
+    },
+    {
+      "code": "zh-Hans",
+      "name": "中文（简体字）",
+      "search": "简体中文",
+      "group": "亚洲"
+    },
+    {
+      "code": "zh-Hant",
+      "name": "繁體中文（繁體字）",
+      "search": "繁体中文",
+      "group": "亚洲"
+    },
+    {
+      "code": "zu",
+      "name": "isiZulu",
+      "search": "祖鲁语",
+      "group": "非洲"
+    },
+    {
+      "code": "zu-ZA",
+      "name": "isiZulu (iNingizimu Afrika)",
+      "search": "祖鲁语（南非）",
+      "group": "非洲"
+    }
+  ]
+}

@@ -12,7 +12,7 @@ import { actorHash, sha256 } from "../../src/lib/templates/crypto";
 import { database, rows, write, transaction } from "../../src/lib/templates/database";
 import { publish } from "../../src/lib/templates/publish-service";
 import { v2Route } from "../../src/lib/templates/routes";
-import { publicPage, search, candidates } from "../../src/lib/templates/search-service";
+import { publicPage, search, candidates, trendingTerms } from "../../src/lib/templates/search-service";
 import {
   recordUse,
   moderateInTransaction,
@@ -300,10 +300,12 @@ test(
     assert.equal(second.items.length, 1);
     assert.notEqual(second.items[0].templateID, first.items[0].templateID);
     assert.notEqual(second.items[0].templateID, current.id);
-    await assert.rejects(
-      publicPage({ ...input, cursor: first.nextCursor, locale: "zh" }, "Pagination sample", "keyword"),
-      { code: "INVALID_REQUEST" },
+    const otherLocale = await publicPage(
+      { ...input, cursor: first.nextCursor, locale: "zh" },
+      "Pagination sample",
+      "keyword",
     );
+    assert.deepEqual(otherLocale.items, second.items);
   },
 );
 test(
@@ -581,3 +583,40 @@ test(
     assert.deepEqual(await candidates(name, false, []), []);
   },
 );
+
+test("trending lookup selects enabled exact terms before aliases and English fallback", { skip: !active }, async () => {
+  const ids: string[] = [];
+  const add = async (locale: string, term: string, enabled = true) => {
+    const id = randomUUID();
+    ids.push(id);
+    await database().template_trending_terms.create({ data: { id, locale, term, enabled } });
+  };
+  try {
+    await add("en", "English");
+    await add("en-AU", "Disabled Australian", false);
+    await add("zh-Hans", "简体词");
+    await add("fr", "Français");
+    assert.deepEqual(await trendingTerms("en-AU"), [{ term: "English" }]);
+    await add("en-AU", "Australian");
+    assert.deepEqual(await trendingTerms("EN-au"), [{ term: "Australian" }]);
+    assert.deepEqual(await trendingTerms("fr-CA"), [{ term: "Français" }]);
+    assert.deepEqual(await trendingTerms("zh-CN"), [{ term: "简体词" }]);
+    assert.deepEqual(await trendingTerms("zh-hans"), [{ term: "简体词" }]);
+    assert.deepEqual(await trendingTerms("zh-HK"), [{ term: "English" }]);
+    await add("zh-CN", "大陆专用词");
+    assert.deepEqual(await trendingTerms("zh-CN"), [{ term: "大陆专用词" }]);
+    assert.deepEqual(await trendingTerms("zh-SG"), [{ term: "简体词" }]);
+    await add("zh-TW", "繁體詞");
+    assert.deepEqual(await trendingTerms("zh-HK"), [{ term: "繁體詞" }]);
+    assert.deepEqual(await trendingTerms("zh-Hant"), [{ term: "繁體詞" }]);
+    const response = await v2Route(new Request("https://wm.timeprint.net/api/applink/v2/discovery?locale=en-AU"), [
+      "discovery",
+    ]);
+    assert.equal(response.status, 200);
+    assert.deepEqual((await response.json()).trending, [{ term: "Australian" }]);
+    await database().template_trending_terms.deleteMany({ where: { id: { in: ids } } });
+    assert.deepEqual(await trendingTerms("zz-ZZ"), []);
+  } finally {
+    await database().template_trending_terms.deleteMany({ where: { id: { in: ids } } });
+  }
+});

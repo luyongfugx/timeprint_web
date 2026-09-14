@@ -5,112 +5,40 @@ import { useState } from "react";
 import { Check, ChevronDown, Globe, Search } from "lucide-react";
 
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import clientLocales from "@/lib/templates/client-locales.json";
+import { trendingConfigLocale } from "@/lib/templates/trending-locales";
 
-const groups: { name: string; languages: [string, string, string][] }[] = [
-  {
-    name: "亚洲",
-    languages: [
-      ["zh-CN", "中文（简体）", "简体中文 中国"],
-      ["zh-Hans", "中文（简体字）", "简体中文"],
-      ["zh-TW", "繁體中文（台灣）", "繁体中文 台湾"],
-      ["zh-HK", "繁體中文（香港）", "繁体中文 香港"],
-      ["zh-Hant", "繁體中文（繁體字）", "繁体中文"],
-      ["hi", "हिन्दी", "印地语 Hindi"],
-      ["bn", "বাংলা", "孟加拉语 Bengali"],
-      ["ar", "العربية", "阿拉伯语 Arabic"],
-      ["id", "Bahasa Indonesia", "印度尼西亚语 Indonesian"],
-      ["ur", "اردو", "乌尔都语 Urdu"],
-      ["ja", "日本語", "日语 Japanese"],
-      ["pa", "ਪੰਜਾਬੀ", "旁遮普语 Punjabi"],
-      ["jv", "Basa Jawa", "爪哇语 Javanese"],
-      ["vi", "Tiếng Việt", "越南语 Vietnamese"],
-      ["te", "తెలుగు", "泰卢固语 Telugu"],
-      ["tr", "Türkçe", "土耳其语 Turkish"],
-      ["ko", "한국어", "韩语 Korean"],
-      ["ta", "தமிழ்", "泰米尔语 Tamil"],
-      ["mr", "मराठी", "马拉地语 Marathi"],
-      ["fa", "فارسی", "波斯语 Persian"],
-      ["gu", "ગુજરાતી", "古吉拉特语 Gujarati"],
-      ["kn", "ಕನ್ನಡ", "卡纳达语 Kannada"],
-      ["ml", "മലയാളം", "马拉雅拉姆语 Malayalam"],
-      ["or", "ଓଡ଼ିଆ", "奥里亚语 Odia"],
-      ["my", "မြန်မာ", "缅甸语 Burmese"],
-      ["th", "ไทย", "泰语 Thai"],
-      ["uz", "O‘zbekcha", "乌兹别克语 Uzbek"],
-      ["az", "Azərbaycan", "阿塞拜疆语 Azerbaijani"],
-      ["si", "සිංහල", "僧伽罗语 Sinhala"],
-      ["ne", "नेपाली", "尼泊尔语 Nepali"],
-      ["he", "עברית", "希伯来语 Hebrew"],
-      ["km", "ខ្មែរ", "高棉语 Khmer"],
-      ["tg", "Тоҷикӣ", "塔吉克语 Tajik"],
-      ["kk", "Қазақ", "哈萨克语 Kazakh"],
-      ["hy", "Հայերեն", "亚美尼亚语 Armenian"],
-      ["lo", "ລາວ", "老挝语 Lao"],
-      ["ku", "Kurdî", "库尔德语 Kurdish"],
-      ["as", "অসমীয়া", "阿萨姆语 Assamese"],
-      ["ms", "Bahasa Melayu", "马来语 Malay"],
-      ["fil", "Filipino", "菲律宾语"],
-      ["ceb", "Cebuano", "宿务语"],
-      ["ps", "پښتو", "普什图语 Pashto"],
-      ["tk", "Türkmençe", "土库曼语 Turkmen"],
-      ["ky", "Кыргызча", "吉尔吉斯语 Kyrgyz"],
-      ["mn", "Монгол", "蒙古语 Mongolian"],
-      ["dv", "ދިވެހި", "迪维希语 Dhivehi"],
-      ["ka", "ქართული", "格鲁吉亚语 Georgian"],
-    ],
-  },
-  {
-    name: "欧洲",
-    languages: [
-      ["en", "English", "英语"],
-      ["ru", "Русский", "俄语 Russian"],
-      ["de", "Deutsch", "德语 German"],
-      ["fr", "Français", "法语 French"],
-      ["it", "Italiano", "意大利语 Italian"],
-      ["es", "Español", "西班牙语 Spanish"],
-      ["uk", "Українська", "乌克兰语 Ukrainian"],
-      ["pl", "Polski", "波兰语 Polish"],
-      ["pt", "Português", "葡萄牙语 Portuguese"],
-      ["nl", "Nederlands", "荷兰语 Dutch"],
-      ["sv", "Svenska", "瑞典语 Swedish"],
-      ["no", "Norsk", "挪威语 Norwegian"],
-      ["da", "Dansk", "丹麦语 Danish"],
-      ["fi", "Suomi", "芬兰语 Finnish"],
-      ["el", "Ελληνικά", "希腊语 Greek"],
-      ["cs", "Čeština", "捷克语 Czech"],
-      ["ro", "Română", "罗马尼亚语 Romanian"],
-      ["hu", "Magyar", "匈牙利语 Hungarian"],
-    ],
-  },
-  {
-    name: "美洲与大洋洲",
-    languages: [
-      ["en-US", "English (US)", "美国英语"],
-      ["en-AU", "English (Australia)", "澳大利亚英语"],
-      ["es-MX", "Español (México)", "墨西哥西班牙语"],
-      ["pt-BR", "Português (Brasil)", "巴西葡萄牙语"],
-      ["fr-CA", "Français (Canada)", "加拿大法语"],
-      ["mi", "Māori", "毛利语"],
-    ],
-  },
-  {
-    name: "非洲",
-    languages: [
-      ["sw", "Kiswahili", "斯瓦希里语 Swahili"],
-      ["af", "Afrikaans", "南非荷兰语"],
-      ["am", "አማርኛ", "阿姆哈拉语 Amharic"],
-      ["ha", "Hausa", "豪萨语"],
-      ["yo", "Yorùbá", "约鲁巴语"],
-      ["zu", "isiZulu", "祖鲁语 Zulu"],
-    ],
-  },
+const configLanguages = [
+  ...new Map(
+    clientLocales.languages.map((language) => {
+      const code = trendingConfigLocale(language.code);
+      return [
+        code,
+        code === "zh-Hans"
+          ? {
+              ...language,
+              code,
+              name: "简体中文",
+              search: "简体中文 中国 新加坡 马来西亚 zh zh-CN zh-SG zh-MY zh-Hans",
+            }
+          : language,
+      ] as const;
+    }),
+  ).values(),
 ];
+const groups = ["亚洲", "欧洲", "美洲与大洋洲", "非洲"].map((name) => ({
+  name,
+  languages: configLanguages
+    .filter((language) => language.group === name)
+    .map((language) => [language.code, language.name, language.search] as [string, string, string]),
+}));
 
 export function LanguagePicker({ value, onChange }: { value: string; onChange: (locale: string) => void }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const all = groups.flatMap((group) => group.languages);
-  const selected = all.find(([code]) => code === value);
+  const selectedCode = trendingConfigLocale(value);
+  const selected = all.find(([code]) => code === selectedCode);
   const search = query.trim().toLowerCase();
   const filtered = groups
     .map((group) => ({
@@ -120,9 +48,11 @@ export function LanguagePicker({ value, onChange }: { value: string; onChange: (
       ),
     }))
     .filter((group) => group.languages.length);
-  const custom = /^[a-zA-Z0-9-]{2,35}$/.test(query.trim()) && !all.some(([code]) => code.toLowerCase() === search);
+  const customCode = trendingConfigLocale(query.trim());
+  const custom =
+    /^[a-zA-Z0-9-]{2,35}$/.test(query.trim()) && !all.some(([code]) => code.toLowerCase() === customCode.toLowerCase());
   function select(code: string) {
-    onChange(code);
+    onChange(trendingConfigLocale(code));
     setOpen(false);
   }
   return (
@@ -141,7 +71,7 @@ export function LanguagePicker({ value, onChange }: { value: string; onChange: (
         >
           <Globe className="size-4" aria-hidden="true" />
           {selected?.[1] ?? value}
-          <span className="text-muted-foreground text-xs">{value}</span>
+          <span className="text-muted-foreground text-xs">{selectedCode}</span>
           <ChevronDown className="text-muted-foreground size-4" aria-hidden="true" />
         </button>
       </PopoverTrigger>
@@ -173,15 +103,15 @@ export function LanguagePicker({ value, onChange }: { value: string; onChange: (
                   <button
                     key={code}
                     type="button"
-                    aria-pressed={value === code}
+                    aria-pressed={selectedCode === code}
                     title={`${name} (${code})`}
                     onClick={() => select(code)}
-                    className={`hover:bg-accent focus-visible:ring-ring flex min-w-0 items-center gap-2 rounded-lg px-3 py-3 text-left text-sm focus-visible:ring-2 focus-visible:outline-none ${value === code ? "bg-accent font-semibold" : ""}`}
+                    className={`hover:bg-accent focus-visible:ring-ring flex min-w-0 items-center gap-2 rounded-lg px-3 py-3 text-left text-sm focus-visible:ring-2 focus-visible:outline-none ${selectedCode === code ? "bg-accent font-semibold" : ""}`}
                   >
                     <span className="min-w-0 flex-1 truncate" dir="auto">
                       {name}
                     </span>
-                    {value === code && <Check className="size-4 shrink-0 text-orange-600" aria-hidden="true" />}
+                    {selectedCode === code && <Check className="size-4 shrink-0 text-orange-600" aria-hidden="true" />}
                   </button>
                 ))}
               </div>

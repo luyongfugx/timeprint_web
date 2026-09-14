@@ -133,3 +133,42 @@ test("admin: login attempts are throttled", { skip: !active }, async () => {
   if (old === undefined) Reflect.deleteProperty(process.env, "NODE_ENV");
   else Object.assign(process.env, { NODE_ENV: old });
 });
+
+test("admin: Chinese and emoji search work with ASCII share codes and ignore locale", { skip: !active }, async () => {
+  const { adminRoute } = await import("../../src/lib/templates/admin-routes");
+  const { cookie } = await signIn();
+  const [column] = await database().$queryRawUnsafe<{ DATA_TYPE: string }[]>(
+    "SELECT DATA_TYPE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='watermarks_share_links' AND COLUMN_NAME='id'",
+  );
+  const templateID = column.DATA_TYPE === "char" ? randomUUID() : String(Date.now());
+  const code = randomUUID().replaceAll("-", "").slice(0, 8).toUpperCase();
+  const name = `哈😀-${randomUUID()}`;
+  await database().$executeRawUnsafe(
+    "INSERT INTO watermarks_share_links(id,watermark_name,company_name,cover_image_url,json_download_url,share_code) VALUES (?,?,?,'https://example.invalid/cover','https://example.invalid/payload',?)",
+    templateID,
+    name,
+    "中文公司",
+    code,
+  );
+  try {
+    for (const query of [name, "中文公司", code]) {
+      const responses = [];
+      for (const suffix of ["", "&locale=en", "&locale=zh-Hans"]) {
+        const response = await adminRoute(
+          new Request(`${origin}/api/admin/templates?page=1&pageSize=20&query=${encodeURIComponent(query)}${suffix}`, {
+            headers: { cookie },
+          }),
+          [],
+        );
+        assert.equal(response.status, 200);
+        const result = await response.json();
+        assert.ok(result.results.some((row: { id: string }) => row.id === templateID));
+        responses.push(result);
+      }
+      assert.deepEqual(responses[0], responses[1]);
+      assert.deepEqual(responses[0], responses[2]);
+    }
+  } finally {
+    await database().$executeRawUnsafe("DELETE FROM watermarks_share_links WHERE id=?", templateID);
+  }
+});

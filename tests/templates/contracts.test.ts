@@ -4,17 +4,37 @@ import { test } from "node:test";
 
 import { normalizeCode, checkReadable } from "../../src/lib/templates/access-policy";
 import { imageMetadata } from "../../src/lib/templates/asset-service";
+import clientLocales from "../../src/lib/templates/client-locales.json";
 import { createSchema, searchSchema, reportSchema, type TemplateRow } from "../../src/lib/templates/contracts";
 import { canonical, shareCode } from "../../src/lib/templates/crypto";
 import { boundedBytes, body } from "../../src/lib/templates/http";
 import { publicIPv4, legacyURL } from "../../src/lib/templates/legacy-assets";
 import { parsePayload, mapImages, payloadBytes } from "../../src/lib/templates/payload";
 import { queryCode, cursorEncode, cursorDecode } from "../../src/lib/templates/search-service";
+import { trendingLocaleCandidates } from "../../src/lib/templates/trending-locales";
 
 import examples from "./fixtures/contract-examples.json";
 
 process.env.TEMPLATE_CURSOR_SIGNING_KEY = "test-only-cursor-secret-32-characters";
 const fixture = examples.examples;
+test("trending locales preserve exact overrides, language parents and Chinese scripts", () => {
+  assert.deepEqual(trendingLocaleCandidates("en-AU"), ["en-au", "en"]);
+  assert.deepEqual(trendingLocaleCandidates("fr-CA"), ["fr-ca", "fr", "en"]);
+  assert.deepEqual(trendingLocaleCandidates("pt-BR"), ["pt-br", "pt", "pt-pt", "en"]);
+  assert.deepEqual(trendingLocaleCandidates("sr-Latn-RS"), ["sr-latn-rs", "sr-latn", "sr", "en"]);
+  assert.deepEqual(trendingLocaleCandidates("zh-CN"), ["zh-cn", "zh-hans", "zh-sg", "zh-my", "zh", "en"]);
+  assert.deepEqual(trendingLocaleCandidates("zh-HANS"), ["zh-hans", "zh-cn", "zh-sg", "zh-my", "zh", "en"]);
+  assert.deepEqual(trendingLocaleCandidates("zh-HK"), ["zh-hk", "zh-hant", "zh-tw", "zh-mo", "en"]);
+  assert.ok(!trendingLocaleCandidates("zh-Hant-CN").includes("zh-hans"));
+  assert.ok(!trendingLocaleCandidates("zh-Hans-HK").includes("zh-hant"));
+  assert.deepEqual(trendingLocaleCandidates("iw-IL"), ["iw-il", "he-il", "he", "iw", "en"]);
+  assert.deepEqual(trendingLocaleCandidates("tl-PH"), ["tl-ph", "fil-ph", "fil", "tl", "en"]);
+  assert.deepEqual(trendingLocaleCandidates("kk"), ["kk", "kk-kz", "en"]);
+  assert.equal(clientLocales.languages.length, 112);
+  assert.equal(new Set(clientLocales.languages.map((language) => language.code.toLowerCase())).size, 112);
+  for (const language of clientLocales.languages)
+    assert.equal(trendingLocaleCandidates(language.code)[0], language.code.toLowerCase());
+});
 test("iOS public/private contracts and forbidden management fields", () => {
   assert.ok(createSchema.safeParse(fixture.createPublicRequest).success);
   assert.ok(createSchema.safeParse(fixture.createPrivateRequest).success);

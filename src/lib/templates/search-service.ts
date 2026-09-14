@@ -3,14 +3,13 @@ import { randomUUID, createHmac } from "node:crypto";
 
 import { z } from "zod";
 
-import { database } from "../prisma";
-
 import { byCode, card, checkReadable, detail, ensureSnapshot, normalizeCode } from "./access-service";
 import { apiOrigin, enabled, secret, shareOrigin } from "./config";
 import { listSchema, searchSchema, type TemplateRow } from "./contracts";
 import { canonical, equalSecret, sha256 } from "./crypto";
 import { TemplateError } from "./errors";
 import { rows, write, parseJSON } from "./repository";
+import { trendingLocaleCandidates } from "./trending-locales";
 
 export function queryCode(query: string, mode: string): string | null {
   if (mode === "keyword") return null;
@@ -62,7 +61,7 @@ export function cursorDecode(cursor: string, hash: string) {
 }
 export async function publicPage(input: z.infer<typeof listSchema>, query = "", kind = "popular") {
   const excluded = [...new Set(input.excludedTemplateIDs)].sort();
-  const hash = sha256(canonical({ query, kind, locale: input.locale, limit: input.limit, excluded }));
+  const hash = sha256(canonical({ query, kind, limit: input.limit, excluded }));
   let id: string,
     ids: string[],
     offset = 0;
@@ -150,21 +149,22 @@ export async function search(input: z.infer<typeof searchSchema>) {
     ...(page.refreshRequired ? { refreshRequired: true } : {}),
   };
 }
+export async function trendingTerms(locale: string) {
+  for (const candidate of trendingLocaleCandidates(locale)) {
+    const terms = await rows<{ term: string }>(
+      "SELECT term FROM template_trending_terms WHERE LOWER(locale)=? AND enabled=true ORDER BY sort_order,id LIMIT 8",
+      [candidate],
+    );
+    if (terms.length) return terms;
+  }
+  return [];
+}
 export async function discovery(input: z.infer<typeof listSchema>) {
   if (!enabled("SEARCH"))
     throw new TemplateError("SERVICE_UNAVAILABLE", 503, "Search is temporarily unavailable.", true);
-  const terms = (locale: string) =>
-    database().template_trending_terms.findMany({
-      where: { locale, enabled: true },
-      orderBy: { sort_order: "asc" },
-      take: 8,
-      select: { term: true },
-    });
-  let data = await terms(input.locale);
-  if (!data.length && input.locale !== "en") data = await terms("en");
   return {
     contractVersion: 2,
-    trending: data ?? [],
+    trending: await trendingTerms(input.locale),
     popular: await publicPage(input),
     links: {
       removal: `${apiOrigin()}/templates/contact?kind=removal`,

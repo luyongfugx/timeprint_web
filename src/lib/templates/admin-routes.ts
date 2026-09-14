@@ -84,7 +84,7 @@ export async function adminRoute(req: Request, path: string[]) {
             " AND (CASE WHEN contract_version=1 THEN expire_time>0 AND expire_time<=UNIX_TIMESTAMP() ELSE COALESCE(expires_at<=UTC_TIMESTAMP(3),FALSE) END)=?";
           values.push(expiry.data === "true");
         }
-        const where = `WHERE (?='' OR LOCATE(LOWER(?),LOWER(watermark_name))>0 OR LOCATE(LOWER(?),LOWER(COALESCE(company_name,'')))>0 OR UPPER(share_code)=UPPER(?)) ${filter}`;
+        const where = `WHERE (?='' OR LOCATE(LOWER(?),LOWER(watermark_name))>0 OR LOCATE(LOWER(?),LOWER(COALESCE(company_name,'')))>0 OR UPPER(CONVERT(share_code USING utf8mb4))=UPPER(?)) ${filter}`;
         const [count] = await rows<{ total: string }>(
           `SELECT COUNT(*) AS total FROM template_records ${where}`,
           values,

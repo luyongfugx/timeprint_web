@@ -220,12 +220,10 @@ export default function Page() {
     setBusy(true);
     setError("");
     setRows([]);
-    const params = new URLSearchParams({
-      page: String(page),
-      pageSize: String(pageSize),
-      query: submittedQuery,
-      locale,
-    });
+    const params =
+      tab === "trending"
+        ? new URLSearchParams({ locale })
+        : new URLSearchParams({ page: String(page), pageSize: String(pageSize), query: submittedQuery });
     if (filter && tab === "templates") params.set("visibility", filter);
     fetch(`/api/admin/templates${tab === "templates" ? "" : `/${tab}`}?${params}`, {
       cache: "no-store",
