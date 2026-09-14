@@ -1,17 +1,20 @@
-import { createClient } from "@/lib/supabaseServer"
-import { NextResponse } from "next/server"
+import { assertOrigin, digest, sessionCookie, tokenFromRequest } from "@/lib/auth/session";
+import { database } from "@/lib/prisma";
+import { endpoint, json } from "@/lib/templates/http";
 
-export async function POST() {
-  try {
-    const supabase = await createClient()
-    const { error } = await supabase.auth.signOut()
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 400 })
-    }
-
-    return NextResponse.json({ success: true })
-  } catch (error) {
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
-  }
+export const runtime = "nodejs";
+export async function POST(req: Request) {
+  return endpoint(
+    req,
+    async () => {
+      assertOrigin(req);
+      const token = tokenFromRequest(req);
+      if (token) await database().admin_sessions.deleteMany({ where: { token_hash: digest(token) } });
+      const response = json({ success: true });
+      response.headers.set("Set-Cookie", sessionCookie("", 0));
+      return response;
+    },
+    false,
+    true,
+  );
 }

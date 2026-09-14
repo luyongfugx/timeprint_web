@@ -4,13 +4,24 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "next build",
+    "build": "node scripts/prisma.mjs generate && next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "prepare": "husky",
-    "generate:presets": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' src/scripts/generate-theme-presets.ts"
+    "generate:presets": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' src/scripts/generate-theme-presets.ts",
+    "test:templates": "node --conditions=react-server --import tsx --test tests/templates/contracts.test.ts",
+    "test:templates:mysql": "node --conditions=react-server --import tsx --test tests/templates/mysql.test.ts",
+    "templates:preflight": "node --env-file=.env.local scripts/migrate-templates.mjs",
+    "templates:migrate": "node --env-file=.env.local scripts/migrate-templates.mjs --apply",
+    "postinstall": "node scripts/prisma.mjs generate",
+    "prisma:generate": "node --env-file-if-exists=.env.local scripts/prisma.mjs generate",
+    "prisma:validate": "node --env-file-if-exists=.env.local scripts/prisma.mjs validate",
+    "prisma:pull": "node --env-file-if-exists=.env.local scripts/prisma.mjs db pull",
+    "prisma:studio": "node --env-file-if-exists=.env.local scripts/prisma.mjs studio",
+    "admin:init": "node --env-file-if-exists=.env.local scripts/migrate-admin-login.mjs",
+    "test:admin": "node --conditions=react-server --import tsx --test tests/templates/admin-auth.test.ts"
   },
   "lint-staged": {
     "*.{js,ts,jsx,tsx}": [
@@ -23,7 +34,7 @@
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
     "@hookform/resolvers": "^3.10.0",
-    "@supabase/ssr": "^0.7.0",
+    "@prisma/client": "6.19.3",
     "@supabase/supabase-js": "^2.56.0",
     "@tanstack/react-query": "^5.86.0",
     "@tanstack/react-table": "^8.21.3",
@@ -36,7 +47,7 @@
     "eslint-plugin-unicorn": "^56.0.1",
     "input-otp": "^1.4.2",
     "lucide-react": "^0.453.0",
-    "next": "^15.5.2",
+    "next": "16.3.5",
     "next-themes": "^0.4.6",
     "radix-ui": "^1.4.3",
     "react": "^19.1.1",
@@ -45,6 +56,8 @@
     "react-hook-form": "^7.62.0",
     "react-resizable-panels": "^3.0.5",
     "recharts": "^2.15.4",
+    "server-only": "^0.0.1",
+    "sharp": "^0.34.5",
     "simple-icons": "^15.13.0",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.3.1",
@@ -61,7 +74,7 @@
     "@types/react-dom": "^18.3.7",
     "@typescript-eslint/parser": "^8.26.0",
     "eslint": "^9.34.0",
-    "eslint-config-next": "^15.5.2",
+    "eslint-config-next": "16.3.5",
     "eslint-plugin-import": "^2.32.0",
     "eslint-plugin-prettier": "^5.5.4",
     "eslint-plugin-react": "^7.37.5",
@@ -74,10 +87,15 @@
     "postcss": "^8.5.6",
     "prettier": "^3.6.2",
     "prettier-plugin-tailwindcss": "^0.6.14",
+    "prisma": "6.19.3",
     "tailwindcss": "^4.1.5",
     "ts-node": "^10.9.2",
+    "tsx": "^4.23.13",
     "tw-animate-css": "^1.3.8",
     "typescript": "^5.9.2",
     "typescript-eslint": "^8.42.0"
+  },
+  "engines": {
+    "node": "24.x"
   }
 }

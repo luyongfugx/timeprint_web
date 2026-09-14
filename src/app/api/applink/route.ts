@@ -1,83 +1,57 @@
-import { createClient } from "@/lib/supabaseServer";
-import { type NextRequest, NextResponse } from "next/server";
-import crypto from "crypto";
+import { randomUUID } from "node:crypto";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization",
-};
+import { z } from "zod";
 
-export async function OPTIONS() {
-  return NextResponse.json({}, { headers: corsHeaders });
+import { text } from "@/lib/templates/contracts";
+import { body, endpoint, json } from "@/lib/templates/http";
+import { publish } from "@/lib/templates/publish-service";
+import { requestLimit } from "@/lib/templates/routes";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+export const maxDuration = 60;
+export async function OPTIONS(req: Request) {
+  return endpoint(req, async () => new Response(null, { status: 204 }), true);
 }
-
-export async function POST(request: NextRequest) {
-  try {
-    const { watermarkName, companyName, coverImageUrl, jsonDownloadUrl, status, userId, expireType } =
-      await request.json();
-
-    // 验证必要字段（companyName 可选）
-    if (!watermarkName || !coverImageUrl || !jsonDownloadUrl) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400, headers: corsHeaders });
-    }
-
-    // 计算过期时间（Unix 秒级时间戳）；0 表示永不过期
-    const nowSec = Math.floor(Date.now() / 1000);
-    let expireTime = 0;
-    switch (expireType) {
-      case 1: // 一个月内不过期（按30天计算）
-        expireTime = nowSec + 30 * 24 * 60 * 60;
-        break;
-      case 2: // 一天内不过期
-        expireTime = nowSec + 24 * 60 * 60;
-        break;
-      case 3: // 一小时内不过期
-        expireTime = nowSec + 60 * 60;
-        break;
-      default: // 0 或未传：永不过期
-        expireTime = 0;
-    }
-
-    const supabase = await createClient();
-
-    // 生成8位随机码
-    const randomCode = crypto.randomBytes(4).toString("hex").toUpperCase();
-    // 创建水印分享记录
-    const { data: shareLink, error } = await supabase
-      .from("watermarks_share_links")
-      .insert({
-        watermark_name: watermarkName,
-        company_name: companyName || null,
-        cover_image_url: coverImageUrl,
-        json_download_url: jsonDownloadUrl,
-        status: status || 0,
-        created_at: new Date().toISOString(),
-        user_id: userId || "anonymous",
-        share_code: randomCode,
-        expire_time: expireTime,
-      })
-      .select()
-      .single();
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 400, headers: corsHeaders });
-    }
-
-    // 构建分享链接
-    const shareUrl = new URL("https://share.timeprint.net");
-    shareUrl.pathname = "/share"; // 假设前端分享页面路径为 /share
-    shareUrl.searchParams.set("code", randomCode);
-
-    return NextResponse.json(
-      {
-        success: true,
-        shareLink: shareUrl.toString(),
-        shareCode: randomCode,
-      },
-      { headers: corsHeaders },
-    );
-  } catch (error) {
-    return NextResponse.json({ error: "Internal server error" }, { status: 500, headers: corsHeaders });
-  }
+export async function POST(req: Request) {
+  return endpoint(
+    req,
+    async () => {
+      await requestLimit(req, "legacy-create", 10);
+      const input = await body(
+        req,
+        z
+          .object({
+            watermarkName: text(100, 1),
+            companyName: text(100).optional(),
+            coverImageUrl: z.string().url().max(2048),
+            jsonDownloadUrl: z.string().url().max(2048),
+            status: z.literal(0).optional(),
+            userId: z.string().min(1).max(128).optional(),
+            expireType: z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3)]).default(0),
+          })
+          .strict(),
+      );
+      const result = await publish(
+        req,
+        {
+          contractVersion: 2,
+          clientRequestID: randomUUID(),
+          visibility: "public",
+          watermarkName: input.watermarkName,
+          companyName: input.companyName ?? "",
+          coverImageURL: input.coverImageUrl,
+          jsonDownloadURL: input.jsonDownloadUrl,
+          coverKind: "watermark",
+          coverWidth: 1,
+          coverHeight: 1,
+          userID: input.userId ?? "legacy-anonymous",
+        },
+        1,
+        [0, 2_592_000, 86_400, 3_600][input.expireType],
+      );
+      return json({ success: true, shareCode: result.receipt.shareCode, shareLink: result.receipt.shareLink });
+    },
+    true,
+  );
 }

@@ -35,3 +35,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Current Next build output (legacy .next cache may be root-owned)
+.next-timeprint/
+
+# Isolated build/preview outputs
+.next-timeprint-*/

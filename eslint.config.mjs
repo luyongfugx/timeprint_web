@@ -1,7 +1,6 @@
-import { FlatCompat } from "@eslint/eslintrc";
+import nextVitals from "eslint-config-next/core-web-vitals";
+import nextTypescript from "eslint-config-next/typescript";
 import pluginJs from "@eslint/js";
-import pluginImport from "eslint-plugin-import";
-import pluginReact from "eslint-plugin-react";
 import globals from "globals";
 import tseslint from "typescript-eslint";
 import securityPlugin from "eslint-plugin-security";
@@ -9,14 +8,23 @@ import prettier from "eslint-plugin-prettier";
 import unicorn from "eslint-plugin-unicorn";
 import sonarjs from "eslint-plugin-sonarjs";
 
-const compat = new FlatCompat({
-  baseDirectory: import.meta.dirname,
-});
-
 /** @type {import('eslint').Linter.Config[]} */
 export default [
   { files: ["**/*.{js,mjs,cjs,ts,jsx,tsx}"] },
-  { ignores: [".github/", ".husky/", "node_modules/", ".next/", "src/components/ui", "*.config.ts", "*.mjs"] },
+  {
+    ignores: [
+      ".github/",
+      ".husky/",
+      "node_modules/",
+      ".next/",
+      ".next-timeprint/",
+      ".next-timeprint-*/",
+      "src/components/ui",
+      "*.config.ts",
+      "**/*.mjs",
+      "next-env.d.ts",
+    ],
+  },
   {
     languageOptions: {
       globals: globals.browser,
@@ -31,19 +39,17 @@ export default [
       },
     },
     plugins: {
-      import: pluginImport,
       security: securityPlugin,
-      // prettier: prettier,
+      prettier: prettier,
       unicorn: unicorn,
-      react: pluginReact,
       sonarjs: sonarjs,
     },
   },
   pluginJs.configs.recommended,
-  pluginReact.configs.flat.recommended,
   securityPlugin.configs.recommended,
   ...tseslint.configs.recommended,
-  ...compat.extends("next/core-web-vitals", "next/typescript"),
+  ...nextVitals,
+  ...nextTypescript,
   {
     rules: {
       // Prettier integration rules

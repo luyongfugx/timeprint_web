@@ -1,4 +1,4 @@
-import { ChartBar, ImageMinus, type LucideIcon, HomeIcon, Users2Icon, GroupIcon } from "lucide-react";
+import { ImageMinus, type LucideIcon } from "lucide-react";
 
 export interface NavSubItem {
   title: string;
@@ -26,30 +26,5 @@ export interface NavGroup {
 }
 
 export const sidebarItems: NavGroup[] = [
-  {
-    id: 1,
-    label: "Dashboards",
-    items: [
-      {
-        title: "Home",
-        url: "/dashboard/default",
-        icon: HomeIcon,
-      },
-      {
-        title: "Members",
-        url: "/dashboard/members",
-        icon: Users2Icon,
-      },
-      {
-        title: "TeamInfo",
-        url: "/dashboard/team-info",
-        icon: GroupIcon,
-      },
-      {
-        title: "Watermarks",
-        url: "/dashboard/watermark",
-        icon: ImageMinus,
-      },
-    ],
-  },
+  { id: 1, label: "Timeprint", items: [{ title: "Watermarks", url: "/dashboard/watermark", icon: ImageMinus }] },
 ];

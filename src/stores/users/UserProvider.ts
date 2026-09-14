@@ -1,39 +1,17 @@
-// providers/UserProvider.tsx
-'use client'
+"use client";
+import { type ReactNode, useEffect } from "react";
 
-import { ReactNode, useEffect } from 'react'
-import { supabase } from '@/lib/supabaseClient'
-import { useUserStore } from './userStore'
+import { useUserStore } from "./userStore";
 
 export function UserProvider({ children }: { children: ReactNode }) {
-  const setUser = useUserStore((state) => state.setUser)
-  const clearUser = useUserStore((state) => state.clearUser)
-
+  const setUser = useUserStore((s) => s.setUser);
   useEffect(() => {
-    // 获取当前 session
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user) {
-        setUser(user)
-      } else {
-        clearUser()
-      }
-    })
-
-    // 监听登录/登出事件
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session?.user) {
-        setUser(session.user)
-      } else {
-        clearUser()
-      }
-    })
-
-    return () => {
-      subscription.unsubscribe()
-    }
-  }, [setUser, clearUser])
-
-  return children
+    const controller = new AbortController();
+    fetch("/api/auth/session", { cache: "no-store", signal: controller.signal })
+      .then((response) => (response.ok ? response.json() : { user: null }))
+      .then((data) => setUser(data.user))
+      .catch(() => {});
+    return () => controller.abort();
+  }, [setUser]);
+  return children;
 }

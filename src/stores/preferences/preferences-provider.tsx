@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useRef } from "react";
+import { createContext, useContext, useState } from "react";
 
 import { useStore, type StoreApi } from "zustand";
 
@@ -17,11 +17,9 @@ export const PreferencesStoreProvider = ({
   themeMode: PreferencesState["themeMode"];
   themePreset: PreferencesState["themePreset"];
 }) => {
-  const storeRef = useRef<StoreApi<PreferencesState> | null>(null);
+  const [store] = useState(() => createPreferencesStore({ themeMode, themePreset }));
 
-  storeRef.current ??= createPreferencesStore({ themeMode, themePreset });
-
-  return <PreferencesStoreContext.Provider value={storeRef.current}>{children}</PreferencesStoreContext.Provider>;
+  return <PreferencesStoreContext.Provider value={store}>{children}</PreferencesStoreContext.Provider>;
 };
 
 export const usePreferencesStore = <T,>(selector: (state: PreferencesState) => T): T => {

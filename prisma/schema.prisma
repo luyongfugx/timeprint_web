@@ -1,0 +1,228 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model template_admins {
+  user_id String  @id @db.Char(36)
+  enabled Boolean @default(true)
+  role    String  @db.VarChar(16)
+}
+
+model template_assets {
+  id                       String                   @id @db.Char(36)
+  upload_session_id        String                   @db.Char(36)
+  template_id              String?                  @db.Char(36)
+  request_id               String?                  @db.Char(36)
+  client_asset_id          String                   @db.Char(36)
+  kind                     String                   @db.VarChar(10)
+  object_key               String                   @db.VarChar(255)
+  sealed_key               String?                  @db.VarChar(255)
+  mime                     String                   @db.VarChar(32)
+  bytes                    BigInt                   @db.UnsignedBigInt
+  width                    Int?
+  height                   Int?
+  sha256                   String                   @db.Char(64)
+  sealed_sha256            String?                  @db.Char(64)
+  state                    String                   @default("staging") @db.VarChar(10)
+  created_at               DateTime                 @default(dbgenerated("(utc_timestamp(3))"))
+  template_upload_sessions template_upload_sessions @relation(fields: [upload_session_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "template_assets_ibfk_1")
+  watermarks_share_links   watermarks_share_links?  @relation(fields: [template_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "template_assets_ibfk_2")
+  template_requests        template_requests?       @relation(fields: [request_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "template_assets_ibfk_3")
+
+  @@unique([upload_session_id, client_asset_id], map: "asset_idempotency")
+  @@index([request_id], map: "request_id")
+  @@index([template_id], map: "template_id")
+}
+
+model template_moderation_actions {
+  id            String   @id @db.Char(36)
+  template_id   String?  @db.VarChar(128)
+  report_id     String?  @db.Char(36)
+  request_id    String?  @db.Char(36)
+  admin_user_id String   @db.Char(36)
+  action        String   @db.VarChar(32)
+  reason        String   @db.Text
+  before_state  Json?
+  after_state   Json?
+  created_at    DateTime @default(dbgenerated("(utc_timestamp(3))"))
+}
+
+model template_publish_requests {
+  actor_hash             String                  @db.Char(64)
+  client_request_id      String                  @db.Char(36)
+  request_hash           String                  @db.Char(64)
+  state                  String                  @db.VarChar(12)
+  template_id            String?                 @db.Char(36)
+  receipt_json           Json?
+  created_at             DateTime                @default(dbgenerated("(utc_timestamp(3))"))
+  watermarks_share_links watermarks_share_links? @relation(fields: [template_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "template_publish_requests_ibfk_1")
+
+  @@id([actor_hash, client_request_id])
+  @@index([template_id], map: "template_id")
+}
+
+model template_rate_limits {
+  key          String @db.Char(64)
+  action       String @db.VarChar(32)
+  window_start BigInt
+  count        Int
+
+  @@id([key, action, window_start])
+}
+
+model template_reports {
+  id                     String                 @id @db.Char(36)
+  template_id            String                 @db.Char(36)
+  actor_hash             String                 @db.Char(64)
+  client_request_id      String                 @db.Char(36)
+  request_hash           String                 @db.Char(64)
+  reason                 String                 @db.VarChar(64)
+  source                 String                 @db.VarChar(64)
+  status                 String                 @default("received") @db.VarChar(16)
+  created_at             DateTime               @default(dbgenerated("(utc_timestamp(3))"))
+  resolved_at            DateTime?
+  resolution             String?                @db.Text
+  watermarks_share_links watermarks_share_links @relation(fields: [template_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "template_reports_ibfk_1")
+
+  @@unique([actor_hash, client_request_id], map: "report_idempotency")
+  @@index([template_id], map: "template_id")
+}
+
+model template_requests {
+  id                     String                  @id @db.Char(36)
+  kind                   String                  @db.VarChar(10)
+  template_id            String?                 @db.Char(36)
+  submitted_code         String?                 @db.VarChar(10)
+  company_name           String                  @default("") @db.VarChar(100)
+  description            String                  @db.Text
+  contact                String                  @default("") @db.VarChar(254)
+  required_fields        Json
+  attachment_ids         Json
+  status                 String                  @default("received") @db.VarChar(16)
+  client_request_id      String                  @unique(map: "client_request_id") @db.Char(36)
+  request_hash           String                  @db.Char(64)
+  accepted               Boolean                 @default(false)
+  created_at             DateTime                @default(dbgenerated("(utc_timestamp(3))"))
+  resolved_at            DateTime?
+  resolution             String?                 @db.Text
+  template_assets        template_assets[]
+  watermarks_share_links watermarks_share_links? @relation(fields: [template_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "template_requests_ibfk_1")
+
+  @@index([template_id], map: "template_id")
+}
+
+model template_search_snapshots {
+  id          String   @id @db.Char(36)
+  query_hash  String   @db.Char(64)
+  ordered_ids Json
+  expires_at  DateTime @default(dbgenerated("(utc_timestamp(3) + interval 5 minute)"))
+
+  @@index([expires_at], map: "snapshot_expiry")
+}
+
+model template_trending_terms {
+  id         String   @id @db.Char(36)
+  term       String   @db.VarChar(100)
+  locale     String   @db.VarChar(35)
+  sort_order Int      @default(0)
+  enabled    Boolean  @default(true)
+  updated_at DateTime @default(dbgenerated("(utc_timestamp(3))"))
+
+  @@unique([locale, term], map: "term_locale")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model template_upload_sessions {
+  id                String            @id @db.Char(36)
+  actor_hash        String            @db.Char(64)
+  client_request_id String            @db.Char(36)
+  visibility        String?           @db.VarChar(10)
+  purpose           String            @default("template") @db.VarChar(10)
+  token_hash        String            @db.Char(64)
+  state             String            @default("open") @db.VarChar(12)
+  expires_at        DateTime          @default(dbgenerated("(utc_timestamp(3) + interval 1 hour)"))
+  created_at        DateTime          @default(dbgenerated("(utc_timestamp(3))"))
+  manifest_hash     String?           @db.Char(64)
+  completion_json   Json?
+  cover_asset_id    String?           @db.Char(36)
+  payload_asset_id  String?           @db.Char(36)
+  template_assets   template_assets[]
+
+  @@index([state, created_at], map: "session_cleanup")
+}
+
+model template_uses {
+  template_id            String                 @db.Char(36)
+  actor_hash             String                 @db.Char(64)
+  created_at             DateTime               @default(dbgenerated("(utc_timestamp(3))"))
+  watermarks_share_links watermarks_share_links @relation(fields: [template_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "template_uses_ibfk_1")
+
+  @@id([template_id, actor_hash])
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model watermarks_share_links {
+  id                        String                      @id @default(dbgenerated("(uuid())")) @db.Char(36)
+  watermark_name            String                      @db.VarChar(255)
+  company_name              String?                     @db.VarChar(100)
+  cover_image_url           String                      @db.Text
+  json_download_url         String                      @db.Text
+  status                    Int                         @default(0)
+  created_at                DateTime                    @default(dbgenerated("(utc_timestamp(3))"))
+  user_id                   String?                     @db.VarChar(128)
+  share_code                String                      @db.VarChar(10)
+  expire_time               BigInt                      @default(0)
+  contract_version          Int                         @default(1) @db.SmallInt
+  visibility                String?                     @db.VarChar(10)
+  discovery_state           String                      @default("held") @db.VarChar(10)
+  cover_kind                String                      @default("watermark") @db.VarChar(10)
+  cover_width               Int?
+  cover_height              Int?
+  payload_schema_version    Int                         @default(1)
+  content_version           Int                         @default(1)
+  payload_sha256            String?                     @db.Char(64)
+  expires_at                DateTime?
+  updated_at                DateTime                    @default(dbgenerated("(utc_timestamp(3))"))
+  removed_at                DateTime?
+  removed_reason            String?                     @db.Text
+  actor_hash                String?                     @db.Char(64)
+  use_count                 BigInt                      @default(0) @db.UnsignedBigInt
+  cover_asset_id            String?                     @db.Char(36)
+  payload_asset_id          String?                     @db.Char(36)
+  normalized_share_code     String?                     @unique(map: "template_share_code_unique") @db.VarChar(10)
+  template_assets           template_assets[]
+  template_publish_requests template_publish_requests[]
+  template_reports          template_reports[]
+  template_requests         template_requests[]
+  template_uses             template_uses[]
+
+  @@index([expires_at], map: "template_expiry")
+  @@index([visibility, discovery_state, status, use_count, created_at, id], map: "template_public_order")
+}
+
+model admin_accounts {
+  id            String           @id @db.Char(36)
+  email         String           @unique @db.VarChar(254)
+  password_hash String           @db.VarChar(255)
+  role          String           @default("admin") @db.VarChar(16)
+  enabled       Boolean          @default(true)
+  created_at    DateTime         @default(dbgenerated("(utc_timestamp(3))"))
+  sessions      admin_sessions[]
+}
+
+model admin_sessions {
+  token_hash       String         @id @db.Char(64)
+  admin_id         String         @db.Char(36)
+  password_version String         @db.Char(64)
+  expires_at       DateTime
+  created_at       DateTime       @default(dbgenerated("(utc_timestamp(3))"))
+  account          admin_accounts @relation(fields: [admin_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([expires_at], map: "admin_session_expiry")
+}

@@ -1,0 +1,943 @@
+{
+  "status": "proposed-not-deployed",
+  "sourceRepository": "https://github.com/luyongfugx/timeprint_web",
+  "sourceCommit": "c79174bc420d568c6372fc28c567dab362dea830",
+  "apiBase": "https://team.timeprint.net/api/applink/v2",
+  "note": "Synthetic fixtures only; URLs/codes/IDs are not live. Upload protocol 2 requests require the session and token headers described in the handoff. Do not call production with these examples.",
+  "examples": {
+    "capabilities": {
+      "contractVersion": 2,
+      "visibility": [
+        "public",
+        "private"
+      ],
+      "privateExpirySeconds": 2592000,
+      "idempotentCreate": true,
+      "uploadProtocolVersion": 2,
+      "searchEnabled": true,
+      "reportEnabled": true
+    },
+    "createPublicRequest": {
+      "contractVersion": 2,
+      "clientRequestID": "268d30c5-e96a-4701-b562-7d12baf0af4d",
+      "visibility": "public",
+      "watermarkName": "Daily inspection",
+      "companyName": "",
+      "coverImageURL": "https://team.timeprint.net/api/applink/v2/upload-sessions/77051543-ff90-4100-bd79-f3d1ba092d16/assets/7a24e811-b966-428a-b6da-275b5085ace8",
+      "jsonDownloadURL": "https://team.timeprint.net/api/applink/v2/upload-sessions/77051543-ff90-4100-bd79-f3d1ba092d16/assets/8bd2a2aa-2199-4538-9f54-0a0279170312",
+      "coverKind": "photo",
+      "coverWidth": 1080,
+      "coverHeight": 1440,
+      "userID": "67c899e2-86c0-40ad-8aab-de86a617fe77"
+    },
+    "createPublicReceipt": {
+      "contractVersion": 2,
+      "templateID": "81001",
+      "clientRequestID": "268d30c5-e96a-4701-b562-7d12baf0af4d",
+      "visibility": "public",
+      "shareCode": "TP7K9W4R2M",
+      "shareLink": "https://share.timeprint.net/share?code=TP7K9W4R2M",
+      "createdAt": "2026-09-13T06:00:00Z",
+      "expiresAt": null
+    },
+    "createPrivateReceipt": {
+      "contractVersion": 2,
+      "templateID": "81002",
+      "clientRequestID": "a38a7f42-0439-48e6-87c9-69ed31925d53",
+      "visibility": "private",
+      "shareCode": "TQ8H3Y6V9N",
+      "shareLink": "https://share.timeprint.net/share?code=TQ8H3Y6V9N",
+      "createdAt": "2026-09-13T06:00:00Z",
+      "expiresAt": "2026-10-13T06:00:00Z"
+    },
+    "publicTemplateDetail": {
+      "contractVersion": 2,
+      "templateID": "81001",
+      "legacy": false,
+      "visibility": "public",
+      "watermarkName": "Daily inspection",
+      "companyName": "",
+      "shareCode": "TP7K9W4R2M",
+      "shareLink": "https://share.timeprint.net/share?code=TP7K9W4R2M",
+      "cover": {
+        "kind": "photo",
+        "url": "https://team.timeprint.net/api/applink/v2/assets/7a24e811-b966-428a-b6da-275b5085ace8",
+        "thumbnailURL": "https://team.timeprint.net/api/applink/v2/assets/7a24e811-b966-428a-b6da-275b5085ace8?variant=thumb",
+        "width": 1080,
+        "height": 1440
+      },
+      "payload": {
+        "url": "https://team.timeprint.net/api/applink/v2/templates/81001/payload",
+        "schemaVersion": 1,
+        "contentVersion": 1
+      },
+      "useCount": 0,
+      "createdAt": "2026-09-13T06:00:00Z",
+      "expiresAt": null,
+      "canShare": true,
+      "canReport": true
+    },
+    "discoveryResponse": {
+      "contractVersion": 2,
+      "trending": [
+        {
+          "term": "Inspection"
+        },
+        {
+          "term": "Construction"
+        }
+      ],
+      "popular": {
+        "items": [],
+        "nextCursor": null
+      },
+      "links": {
+        "removal": "https://share.timeprint.net/templates/contact?kind=removal",
+        "companyRequest": "https://share.timeprint.net/templates/contact?kind=company"
+      }
+    },
+    "searchRequest": {
+      "query": "Daily inspection",
+      "mode": "auto",
+      "locale": "en",
+      "limit": 20,
+      "cursor": null,
+      "excludedTemplateIDs": []
+    },
+    "searchEmptyResponse": {
+      "contractVersion": 2,
+      "queryType": "keyword",
+      "sections": [
+        {
+          "visibility": "public",
+          "items": []
+        }
+      ],
+      "nextCursor": null,
+      "resolvedTemplate": null,
+      "autoOpenTemplateID": null
+    },
+    "reportRequest": {
+      "clientRequestID": "ce29d7b1-321d-4965-968e-b0b0c134aa75",
+      "userID": "67c899e2-86c0-40ad-8aab-de86a617fe77",
+      "reason": "intellectual_property",
+      "source": "template_detail"
+    },
+    "removalRequest": {
+      "clientRequestID": "33f6da3f-48a5-4fe3-ab6c-e94dfbc59d87",
+      "kind": "removal",
+      "templateID": "81001",
+      "shareLink": "https://share.timeprint.net/share?code=TP7K9W4R2M",
+      "description": "Please review the ownership of the uploaded company logo.",
+      "contact": "owner@example.com",
+      "attachmentIDs": []
+    },
+    "errorResponse": {
+      "error": {
+        "code": "TEMPLATE_EXPIRED",
+        "message": "This template link has expired.",
+        "retryable": false,
+        "requestID": "6c0b9bc2-7c67-42df-b4d4-c651d674a2c3"
+      }
+    },
+    "createPrivateRequest": {
+      "contractVersion": 2,
+      "clientRequestID": "a38a7f42-0439-48e6-87c9-69ed31925d53",
+      "visibility": "private",
+      "watermarkName": "",
+      "companyName": "",
+      "coverImageURL": "https://team.timeprint.net/api/applink/v2/upload-sessions/852354ee-74a4-49bf-9d1f-42f7c920349c/assets/e8b108ef-38d8-4866-a6e1-bf65977d816a",
+      "jsonDownloadURL": "https://team.timeprint.net/api/applink/v2/upload-sessions/852354ee-74a4-49bf-9d1f-42f7c920349c/assets/6e7d9e8d-d5b9-441a-a33e-10aa2ff657bc",
+      "coverKind": "watermark",
+      "coverWidth": 1080,
+      "coverHeight": 996,
+      "userID": "67c899e2-86c0-40ad-8aab-de86a617fe77",
+      "expiresInSeconds": 2592000
+    },
+    "privateTemplateDetail": {
+      "contractVersion": 2,
+      "templateID": "81002",
+      "legacy": false,
+      "visibility": "private",
+      "watermarkName": "",
+      "companyName": "",
+      "shareCode": "TQ8H3Y6V9N",
+      "shareLink": "https://share.timeprint.net/share?code=TQ8H3Y6V9N",
+      "cover": {
+        "kind": "watermark",
+        "url": "https://team.timeprint.net/api/applink/v2/assets/e8b108ef-38d8-4866-a6e1-bf65977d816a?code=TQ8H3Y6V9N",
+        "thumbnailURL": "https://team.timeprint.net/api/applink/v2/assets/e8b108ef-38d8-4866-a6e1-bf65977d816a?variant=thumb&code=TQ8H3Y6V9N",
+        "width": 1080,
+        "height": 996
+      },
+      "payload": {
+        "url": "https://team.timeprint.net/api/applink/v2/templates/81002/payload?code=TQ8H3Y6V9N",
+        "schemaVersion": 1,
+        "contentVersion": 1
+      },
+      "useCount": null,
+      "createdAt": "2026-09-13T06:00:00Z",
+      "expiresAt": "2026-10-13T06:00:00Z",
+      "canShare": true,
+      "canReport": true
+    },
+    "privateCodeSearchResponse": {
+      "contractVersion": 2,
+      "queryType": "code",
+      "sections": [
+        {
+          "visibility": "private",
+          "items": [
+            {
+              "contractVersion": 2,
+              "templateID": "81002",
+              "legacy": false,
+              "visibility": "private",
+              "watermarkName": "",
+              "companyName": "",
+              "shareCode": "TQ8H3Y6V9N",
+              "shareLink": "https://share.timeprint.net/share?code=TQ8H3Y6V9N",
+              "cover": {
+                "kind": "watermark",
+                "url": "https://team.timeprint.net/api/applink/v2/assets/e8b108ef-38d8-4866-a6e1-bf65977d816a?code=TQ8H3Y6V9N",
+                "thumbnailURL": "https://team.timeprint.net/api/applink/v2/assets/e8b108ef-38d8-4866-a6e1-bf65977d816a?variant=thumb&code=TQ8H3Y6V9N",
+                "width": 1080,
+                "height": 996
+              },
+              "useCount": null,
+              "createdAt": "2026-09-13T06:00:00Z",
+              "expiresAt": "2026-10-13T06:00:00Z",
+              "canShare": true,
+              "canReport": true
+            }
+          ]
+        }
+      ],
+      "nextCursor": null,
+      "resolvedTemplate": {
+        "contractVersion": 2,
+        "templateID": "81002",
+        "legacy": false,
+        "visibility": "private",
+        "watermarkName": "",
+        "companyName": "",
+        "shareCode": "TQ8H3Y6V9N",
+        "shareLink": "https://share.timeprint.net/share?code=TQ8H3Y6V9N",
+        "cover": {
+          "kind": "watermark",
+          "url": "https://team.timeprint.net/api/applink/v2/assets/e8b108ef-38d8-4866-a6e1-bf65977d816a?code=TQ8H3Y6V9N",
+          "thumbnailURL": "https://team.timeprint.net/api/applink/v2/assets/e8b108ef-38d8-4866-a6e1-bf65977d816a?variant=thumb&code=TQ8H3Y6V9N",
+          "width": 1080,
+          "height": 996
+        },
+        "payload": {
+          "url": "https://team.timeprint.net/api/applink/v2/templates/81002/payload?code=TQ8H3Y6V9N",
+          "schemaVersion": 1,
+          "contentVersion": 1
+        },
+        "useCount": null,
+        "createdAt": "2026-09-13T06:00:00Z",
+        "expiresAt": "2026-10-13T06:00:00Z",
+        "canShare": true,
+        "canReport": true
+      },
+      "autoOpenTemplateID": "81002"
+    },
+    "keywordSearchResponse": {
+      "contractVersion": 2,
+      "queryType": "keyword",
+      "sections": [
+        {
+          "visibility": "public",
+          "items": [
+            {
+              "contractVersion": 2,
+              "templateID": "81001",
+              "legacy": false,
+              "visibility": "public",
+              "watermarkName": "Daily inspection",
+              "companyName": "",
+              "shareCode": "TP7K9W4R2M",
+              "shareLink": "https://share.timeprint.net/share?code=TP7K9W4R2M",
+              "cover": {
+                "kind": "photo",
+                "url": "https://team.timeprint.net/api/applink/v2/assets/7a24e811-b966-428a-b6da-275b5085ace8",
+                "thumbnailURL": "https://team.timeprint.net/api/applink/v2/assets/7a24e811-b966-428a-b6da-275b5085ace8?variant=thumb",
+                "width": 1080,
+                "height": 1440
+              },
+              "useCount": 0,
+              "createdAt": "2026-09-13T06:00:00Z",
+              "expiresAt": null,
+              "canShare": true,
+              "canReport": true
+            }
+          ]
+        }
+      ],
+      "nextCursor": null,
+      "resolvedTemplate": null,
+      "autoOpenTemplateID": null
+    },
+    "nativePayloadResponse": {
+      "watermarkModel": {
+        "id": "tp_catalog_v1_US_en_demo_inspection",
+        "name": "Daily inspection",
+        "base_id": "12",
+        "catalogSourceBaseID": "60",
+        "templateColorStr": "#2463DB",
+        "textColorStr": "#FFFFFF",
+        "templateScale": 1.0,
+        "items": [
+          {
+            "id": 2,
+            "isOpen": true,
+            "title": "Time",
+            "catalogPreservesTitle": true,
+            "extraTimeInfo": {
+              "dateStyle": 0,
+              "is12Hour": false,
+              "showTimeZone": false,
+              "showWeak": true
+            }
+          },
+          {
+            "id": 3,
+            "isOpen": true,
+            "title": "Address",
+            "catalogPreservesTitle": true,
+            "content": ""
+          },
+          {
+            "id": 8,
+            "isOpen": true,
+            "title": "Notes",
+            "catalogPreservesTitle": true,
+            "content": "Daily inspection"
+          }
+        ]
+      },
+      "coverUrl": "https://team.timeprint.net/api/applink/v2/assets/7a24e811-b966-428a-b6da-275b5085ace8",
+      "viewPositions": null,
+      "itemHistories": null
+    },
+    "catalogEntryMappingExample": {
+      "id": "tp_catalog_v1_US_en_demo_inspection",
+      "name": "Daily inspection",
+      "section": "useCases",
+      "sourceID": "demo_inspection",
+      "sourceBaseID": "60",
+      "model": {
+        "id": "tp_catalog_v1_US_en_demo_inspection",
+        "name": "Daily inspection",
+        "base_id": "12",
+        "catalogSourceBaseID": "60",
+        "templateColorStr": "#2463DB",
+        "textColorStr": "#FFFFFF",
+        "templateScale": 1.0,
+        "items": [
+          {
+            "id": 2,
+            "isOpen": true,
+            "title": "Time",
+            "catalogPreservesTitle": true,
+            "extraTimeInfo": {
+              "dateStyle": 0,
+              "is12Hour": false,
+              "showTimeZone": false,
+              "showWeak": true
+            }
+          },
+          {
+            "id": 3,
+            "isOpen": true,
+            "title": "Address",
+            "catalogPreservesTitle": true,
+            "content": ""
+          },
+          {
+            "id": 8,
+            "isOpen": true,
+            "title": "Notes",
+            "catalogPreservesTitle": true,
+            "content": "Daily inspection"
+          }
+        ]
+      }
+    },
+    "installedLibraryRecordExample": {
+      "localID": "share_v2_8df30e56586f48993b9023af7bda40fc2de734c57d210192cd9647a206e49cf3",
+      "source": "publicShare",
+      "templateID": "81001",
+      "shareCode": "TP7K9W4R2M",
+      "name": "Daily inspection",
+      "companyName": "",
+      "contentVersion": 1,
+      "modelJSON": "{\"id\":\"share_v2_8df30e56586f48993b9023af7bda40fc2de734c57d210192cd9647a206e49cf3\",\"name\":\"Daily inspection\",\"base_id\":\"12\",\"catalogSourceBaseID\":\"60\",\"templateColorStr\":\"#2463DB\",\"textColorStr\":\"#FFFFFF\",\"templateScale\":1.0,\"items\":[{\"id\":2,\"isOpen\":true,\"title\":\"Time\",\"catalogPreservesTitle\":true,\"extraTimeInfo\":{\"dateStyle\":0,\"is12Hour\":false,\"showTimeZone\":false,\"showWeak\":true}},{\"id\":3,\"isOpen\":true,\"title\":\"Address\",\"catalogPreservesTitle\":true,\"content\":\"\"},{\"id\":8,\"isOpen\":true,\"title\":\"Notes\",\"catalogPreservesTitle\":true,\"content\":\"Daily inspection\"}]}",
+      "positionsJSON": null,
+      "installedAt": 810972000.0,
+      "lastUsedAt": 810972000.0
+    },
+    "useRequest": {
+      "clientRequestID": "ce29d7b1-321d-4965-968e-b0b0c134aa75",
+      "userID": "67c899e2-86c0-40ad-8aab-de86a617fe77",
+      "shareCode": "TP7K9W4R2M"
+    },
+    "useReceipt": {
+      "accepted": true,
+      "counted": true,
+      "useCount": 1
+    },
+    "repeatedUseReceipt": {
+      "accepted": true,
+      "counted": false,
+      "useCount": 1
+    },
+    "reportReceipt": {
+      "reportID": "90461bb4-a121-4f85-bc29-f1ab78da0c04",
+      "status": "received"
+    },
+    "templateNotFoundResponse": {
+      "error": {
+        "code": "TEMPLATE_NOT_FOUND",
+        "message": "Template not found",
+        "requestID": "7e65d17d-bf63-4008-9f51-3b701574854e"
+      }
+    },
+    "uploadSessionRequest": {
+      "clientRequestID": "a38a7f42-0439-48e6-87c9-69ed31925d53",
+      "visibility": "private",
+      "userID": "67c899e2-86c0-40ad-8aab-de86a617fe77"
+    },
+    "uploadSessionReceipt": {
+      "uploadSessionID": "852354ee-74a4-49bf-9d1f-42f7c920349c",
+      "uploadToken": "SYNTHETIC_NOT_A_REAL_TOKEN",
+      "expiresAt": "2026-09-13T07:00:00Z"
+    },
+    "registerAssetRequest": {
+      "clientAssetID": "ab82eb1c-0c73-44e3-b620-32e3f5e6f461",
+      "kind": "cover",
+      "contentType": "image/jpeg",
+      "byteLength": 140000,
+      "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+    },
+    "registerAssetReceipt": {
+      "assetID": "e8b108ef-38d8-4866-a6e1-bf65977d816a",
+      "assetReferenceURL": "https://team.timeprint.net/api/applink/v2/upload-sessions/852354ee-74a4-49bf-9d1f-42f7c920349c/assets/e8b108ef-38d8-4866-a6e1-bf65977d816a",
+      "uploadURL": "https://storage.example.invalid/signed-upload/cover",
+      "uploadHeaders": {
+        "Content-Type": "image/jpeg"
+      },
+      "uploadExpiresAt": "2026-09-13T06:10:00Z"
+    },
+    "uploadCompleteRequest": {
+      "coverAssetID": "e8b108ef-38d8-4866-a6e1-bf65977d816a",
+      "payloadAssetID": "6e7d9e8d-d5b9-441a-a33e-10aa2ff657bc"
+    },
+    "uploadCompleteReceipt": {
+      "state": "ready",
+      "coverWidth": 1080,
+      "coverHeight": 996,
+      "payloadSHA256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+    },
+    "companyRequest": {
+      "clientRequestID": "ab0a9bf4-27b2-4d9c-9a8d-3c6484c8ef3e",
+      "kind": "company",
+      "companyName": "Example Field Crew",
+      "requiredFields": [
+        "Time",
+        "Address",
+        "Notes"
+      ],
+      "contact": "partner@example.invalid",
+      "description": "We need an inspection template for our work crew.",
+      "attachmentIDs": []
+    },
+    "requestReceipt": {
+      "requestID": "d13e4ad3-8330-435d-bdbc-1ba85daa1a17",
+      "status": "received"
+    }
+  },
+  "revision": "2026-09-13-r3-stability-review",
+  "clientRepository": "https://github.com/luyongfugx/gps_map_camera",
+  "clientBaselineCommit": "e65201ae675cfdf80127fd4c7c527e604cd040cc",
+  "clientChanges": "Client implementation ships with this r3 document on branch 4.1.9. Use the commit containing this file (or later fixes), not the upstream baseline alone. Backend remains proposed and undeployed.",
+  "mappingNotes": [
+    "templateID is server identity; watermarkModel.id is sender identity and must not become the received local ID.",
+    "base_id=12 is the Timeprint renderer; catalogSourceBaseID=60 preserves catalog appearance semantics. Never interchange them.",
+    "The catalog entry and native payload are synthetic, structurally valid demonstrations, not data to seed from a competitor.",
+    "Swift library record dates currently use JSONEncoder default seconds since 2001-01-01; API timestamps always use ISO 8601 UTC.",
+    "ContentVersion changes do not add a new installed row or overwrite user edits.",
+    "Existing share_ local keys are retained. The library record is client-only; do not send it to the server."
+  ],
+  "httpExamples": [
+    {
+      "method": "GET",
+      "path": "/capabilities",
+      "response": {
+        "contractVersion": 2,
+        "visibility": [
+          "public",
+          "private"
+        ],
+        "privateExpirySeconds": 2592000,
+        "idempotentCreate": true,
+        "uploadProtocolVersion": 2,
+        "searchEnabled": true,
+        "reportEnabled": true
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/templates",
+      "headers": {
+        "Idempotency-Key": "268d30c5-e96a-4701-b562-7d12baf0af4d"
+      },
+      "request": {
+        "contractVersion": 2,
+        "clientRequestID": "268d30c5-e96a-4701-b562-7d12baf0af4d",
+        "visibility": "public",
+        "watermarkName": "Daily inspection",
+        "companyName": "",
+        "coverImageURL": "https://team.timeprint.net/api/applink/v2/upload-sessions/77051543-ff90-4100-bd79-f3d1ba092d16/assets/7a24e811-b966-428a-b6da-275b5085ace8",
+        "jsonDownloadURL": "https://team.timeprint.net/api/applink/v2/upload-sessions/77051543-ff90-4100-bd79-f3d1ba092d16/assets/8bd2a2aa-2199-4538-9f54-0a0279170312",
+        "coverKind": "photo",
+        "coverWidth": 1080,
+        "coverHeight": 1440,
+        "userID": "67c899e2-86c0-40ad-8aab-de86a617fe77"
+      },
+      "status": 201,
+      "response": {
+        "contractVersion": 2,
+        "templateID": "81001",
+        "clientRequestID": "268d30c5-e96a-4701-b562-7d12baf0af4d",
+        "visibility": "public",
+        "shareCode": "TP7K9W4R2M",
+        "shareLink": "https://share.timeprint.net/share?code=TP7K9W4R2M",
+        "createdAt": "2026-09-13T06:00:00Z",
+        "expiresAt": null
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/templates",
+      "headers": {
+        "Idempotency-Key": "a38a7f42-0439-48e6-87c9-69ed31925d53",
+        "X-Template-Upload-Session": "852354ee-74a4-49bf-9d1f-42f7c920349c",
+        "X-Template-Upload-Token": "SYNTHETIC_NOT_A_REAL_TOKEN"
+      },
+      "request": {
+        "contractVersion": 2,
+        "clientRequestID": "a38a7f42-0439-48e6-87c9-69ed31925d53",
+        "visibility": "private",
+        "watermarkName": "",
+        "companyName": "",
+        "coverImageURL": "https://team.timeprint.net/api/applink/v2/upload-sessions/852354ee-74a4-49bf-9d1f-42f7c920349c/assets/e8b108ef-38d8-4866-a6e1-bf65977d816a",
+        "jsonDownloadURL": "https://team.timeprint.net/api/applink/v2/upload-sessions/852354ee-74a4-49bf-9d1f-42f7c920349c/assets/6e7d9e8d-d5b9-441a-a33e-10aa2ff657bc",
+        "coverKind": "watermark",
+        "coverWidth": 1080,
+        "coverHeight": 996,
+        "userID": "67c899e2-86c0-40ad-8aab-de86a617fe77",
+        "expiresInSeconds": 2592000
+      },
+      "status": 201,
+      "response": {
+        "contractVersion": 2,
+        "templateID": "81002",
+        "clientRequestID": "a38a7f42-0439-48e6-87c9-69ed31925d53",
+        "visibility": "private",
+        "shareCode": "TQ8H3Y6V9N",
+        "shareLink": "https://share.timeprint.net/share?code=TQ8H3Y6V9N",
+        "createdAt": "2026-09-13T06:00:00Z",
+        "expiresAt": "2026-10-13T06:00:00Z"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/by-code/TQ8H3Y6V9N",
+      "status": 200,
+      "response": {
+        "contractVersion": 2,
+        "templateID": "81002",
+        "legacy": false,
+        "visibility": "private",
+        "watermarkName": "",
+        "companyName": "",
+        "shareCode": "TQ8H3Y6V9N",
+        "shareLink": "https://share.timeprint.net/share?code=TQ8H3Y6V9N",
+        "cover": {
+          "kind": "watermark",
+          "url": "https://team.timeprint.net/api/applink/v2/assets/e8b108ef-38d8-4866-a6e1-bf65977d816a?code=TQ8H3Y6V9N",
+          "thumbnailURL": "https://team.timeprint.net/api/applink/v2/assets/e8b108ef-38d8-4866-a6e1-bf65977d816a?variant=thumb&code=TQ8H3Y6V9N",
+          "width": 1080,
+          "height": 996
+        },
+        "payload": {
+          "url": "https://team.timeprint.net/api/applink/v2/templates/81002/payload?code=TQ8H3Y6V9N",
+          "schemaVersion": 1,
+          "contentVersion": 1
+        },
+        "useCount": null,
+        "createdAt": "2026-09-13T06:00:00Z",
+        "expiresAt": "2026-10-13T06:00:00Z",
+        "canShare": true,
+        "canReport": true
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/templates/81001",
+      "status": 200,
+      "response": {
+        "contractVersion": 2,
+        "templateID": "81001",
+        "legacy": false,
+        "visibility": "public",
+        "watermarkName": "Daily inspection",
+        "companyName": "",
+        "shareCode": "TP7K9W4R2M",
+        "shareLink": "https://share.timeprint.net/share?code=TP7K9W4R2M",
+        "cover": {
+          "kind": "photo",
+          "url": "https://team.timeprint.net/api/applink/v2/assets/7a24e811-b966-428a-b6da-275b5085ace8",
+          "thumbnailURL": "https://team.timeprint.net/api/applink/v2/assets/7a24e811-b966-428a-b6da-275b5085ace8?variant=thumb",
+          "width": 1080,
+          "height": 1440
+        },
+        "payload": {
+          "url": "https://team.timeprint.net/api/applink/v2/templates/81001/payload",
+          "schemaVersion": 1,
+          "contentVersion": 1
+        },
+        "useCount": 0,
+        "createdAt": "2026-09-13T06:00:00Z",
+        "expiresAt": null,
+        "canShare": true,
+        "canReport": true
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/templates/81001/payload",
+      "responseHeaderNotes": "Content-Type application/json; X-Payload-SHA256 must hash actual response bytes, not another serialization.",
+      "status": 200,
+      "response": {
+        "watermarkModel": {
+          "id": "tp_catalog_v1_US_en_demo_inspection",
+          "name": "Daily inspection",
+          "base_id": "12",
+          "catalogSourceBaseID": "60",
+          "templateColorStr": "#2463DB",
+          "textColorStr": "#FFFFFF",
+          "templateScale": 1.0,
+          "items": [
+            {
+              "id": 2,
+              "isOpen": true,
+              "title": "Time",
+              "catalogPreservesTitle": true,
+              "extraTimeInfo": {
+                "dateStyle": 0,
+                "is12Hour": false,
+                "showTimeZone": false,
+                "showWeak": true
+              }
+            },
+            {
+              "id": 3,
+              "isOpen": true,
+              "title": "Address",
+              "catalogPreservesTitle": true,
+              "content": ""
+            },
+            {
+              "id": 8,
+              "isOpen": true,
+              "title": "Notes",
+              "catalogPreservesTitle": true,
+              "content": "Daily inspection"
+            }
+          ]
+        },
+        "coverUrl": "https://team.timeprint.net/api/applink/v2/assets/7a24e811-b966-428a-b6da-275b5085ace8",
+        "viewPositions": null,
+        "itemHistories": null
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/discovery?locale=en&limit=20",
+      "status": 200,
+      "response": {
+        "contractVersion": 2,
+        "trending": [
+          {
+            "term": "Inspection"
+          },
+          {
+            "term": "Construction"
+          }
+        ],
+        "popular": {
+          "items": [],
+          "nextCursor": null
+        },
+        "links": {
+          "removal": "https://share.timeprint.net/templates/contact?kind=removal",
+          "companyRequest": "https://share.timeprint.net/templates/contact?kind=company"
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/search",
+      "request": {
+        "query": "Daily inspection",
+        "mode": "auto",
+        "locale": "en",
+        "limit": 20,
+        "cursor": null,
+        "excludedTemplateIDs": []
+      },
+      "status": 200,
+      "response": {
+        "contractVersion": 2,
+        "queryType": "keyword",
+        "sections": [
+          {
+            "visibility": "public",
+            "items": [
+              {
+                "contractVersion": 2,
+                "templateID": "81001",
+                "legacy": false,
+                "visibility": "public",
+                "watermarkName": "Daily inspection",
+                "companyName": "",
+                "shareCode": "TP7K9W4R2M",
+                "shareLink": "https://share.timeprint.net/share?code=TP7K9W4R2M",
+                "cover": {
+                  "kind": "photo",
+                  "url": "https://team.timeprint.net/api/applink/v2/assets/7a24e811-b966-428a-b6da-275b5085ace8",
+                  "thumbnailURL": "https://team.timeprint.net/api/applink/v2/assets/7a24e811-b966-428a-b6da-275b5085ace8?variant=thumb",
+                  "width": 1080,
+                  "height": 1440
+                },
+                "useCount": 0,
+                "createdAt": "2026-09-13T06:00:00Z",
+                "expiresAt": null,
+                "canShare": true,
+                "canReport": true
+              }
+            ]
+          }
+        ],
+        "nextCursor": null,
+        "resolvedTemplate": null,
+        "autoOpenTemplateID": null
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/search",
+      "request": {
+        "query": "TQ8H3Y6V9N",
+        "mode": "code",
+        "locale": "en",
+        "limit": 20,
+        "cursor": null,
+        "excludedTemplateIDs": []
+      },
+      "status": 200,
+      "response": {
+        "contractVersion": 2,
+        "queryType": "code",
+        "sections": [
+          {
+            "visibility": "private",
+            "items": [
+              {
+                "contractVersion": 2,
+                "templateID": "81002",
+                "legacy": false,
+                "visibility": "private",
+                "watermarkName": "",
+                "companyName": "",
+                "shareCode": "TQ8H3Y6V9N",
+                "shareLink": "https://share.timeprint.net/share?code=TQ8H3Y6V9N",
+                "cover": {
+                  "kind": "watermark",
+                  "url": "https://team.timeprint.net/api/applink/v2/assets/e8b108ef-38d8-4866-a6e1-bf65977d816a?code=TQ8H3Y6V9N",
+                  "thumbnailURL": "https://team.timeprint.net/api/applink/v2/assets/e8b108ef-38d8-4866-a6e1-bf65977d816a?variant=thumb&code=TQ8H3Y6V9N",
+                  "width": 1080,
+                  "height": 996
+                },
+                "useCount": null,
+                "createdAt": "2026-09-13T06:00:00Z",
+                "expiresAt": "2026-10-13T06:00:00Z",
+                "canShare": true,
+                "canReport": true
+              }
+            ]
+          }
+        ],
+        "nextCursor": null,
+        "resolvedTemplate": {
+          "contractVersion": 2,
+          "templateID": "81002",
+          "legacy": false,
+          "visibility": "private",
+          "watermarkName": "",
+          "companyName": "",
+          "shareCode": "TQ8H3Y6V9N",
+          "shareLink": "https://share.timeprint.net/share?code=TQ8H3Y6V9N",
+          "cover": {
+            "kind": "watermark",
+            "url": "https://team.timeprint.net/api/applink/v2/assets/e8b108ef-38d8-4866-a6e1-bf65977d816a?code=TQ8H3Y6V9N",
+            "thumbnailURL": "https://team.timeprint.net/api/applink/v2/assets/e8b108ef-38d8-4866-a6e1-bf65977d816a?variant=thumb&code=TQ8H3Y6V9N",
+            "width": 1080,
+            "height": 996
+          },
+          "payload": {
+            "url": "https://team.timeprint.net/api/applink/v2/templates/81002/payload?code=TQ8H3Y6V9N",
+            "schemaVersion": 1,
+            "contentVersion": 1
+          },
+          "useCount": null,
+          "createdAt": "2026-09-13T06:00:00Z",
+          "expiresAt": "2026-10-13T06:00:00Z",
+          "canShare": true,
+          "canReport": true
+        },
+        "autoOpenTemplateID": "81002"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/templates/81001/uses",
+      "request": {
+        "clientRequestID": "ce29d7b1-321d-4965-968e-b0b0c134aa75",
+        "userID": "67c899e2-86c0-40ad-8aab-de86a617fe77",
+        "shareCode": "TP7K9W4R2M"
+      },
+      "status": 200,
+      "response": {
+        "accepted": true,
+        "counted": true,
+        "useCount": 1
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/templates/81001/reports",
+      "request": {
+        "clientRequestID": "ce29d7b1-321d-4965-968e-b0b0c134aa75",
+        "userID": "67c899e2-86c0-40ad-8aab-de86a617fe77",
+        "reason": "intellectual_property",
+        "source": "template_detail"
+      },
+      "status": 201,
+      "response": {
+        "reportID": "90461bb4-a121-4f85-bc29-f1ab78da0c04",
+        "status": "received"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/upload-sessions",
+      "request": {
+        "clientRequestID": "a38a7f42-0439-48e6-87c9-69ed31925d53",
+        "visibility": "private",
+        "userID": "67c899e2-86c0-40ad-8aab-de86a617fe77"
+      },
+      "status": 201,
+      "response": {
+        "uploadSessionID": "852354ee-74a4-49bf-9d1f-42f7c920349c",
+        "uploadToken": "SYNTHETIC_NOT_A_REAL_TOKEN",
+        "expiresAt": "2026-09-13T07:00:00Z"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/upload-sessions/{uploadSessionID}/assets",
+      "headers": {
+        "X-Template-Upload-Token": "SYNTHETIC_NOT_A_REAL_TOKEN"
+      },
+      "request": {
+        "clientAssetID": "ab82eb1c-0c73-44e3-b620-32e3f5e6f461",
+        "kind": "cover",
+        "contentType": "image/jpeg",
+        "byteLength": 140000,
+        "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+      },
+      "status": 200,
+      "response": {
+        "assetID": "e8b108ef-38d8-4866-a6e1-bf65977d816a",
+        "assetReferenceURL": "https://team.timeprint.net/api/applink/v2/upload-sessions/852354ee-74a4-49bf-9d1f-42f7c920349c/assets/e8b108ef-38d8-4866-a6e1-bf65977d816a",
+        "uploadURL": "https://storage.example.invalid/signed-upload/cover",
+        "uploadHeaders": {
+          "Content-Type": "image/jpeg"
+        },
+        "uploadExpiresAt": "2026-09-13T06:10:00Z"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/upload-sessions/{uploadSessionID}/complete",
+      "headers": {
+        "X-Template-Upload-Token": "SYNTHETIC_NOT_A_REAL_TOKEN"
+      },
+      "request": {
+        "coverAssetID": "e8b108ef-38d8-4866-a6e1-bf65977d816a",
+        "payloadAssetID": "6e7d9e8d-d5b9-441a-a33e-10aa2ff657bc"
+      },
+      "status": 200,
+      "response": {
+        "state": "ready",
+        "coverWidth": 1080,
+        "coverHeight": 996,
+        "payloadSHA256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/requests",
+      "request": {
+        "clientRequestID": "33f6da3f-48a5-4fe3-ab6c-e94dfbc59d87",
+        "kind": "removal",
+        "templateID": "81001",
+        "shareLink": "https://share.timeprint.net/share?code=TP7K9W4R2M",
+        "description": "Please review the ownership of the uploaded company logo.",
+        "contact": "owner@example.com",
+        "attachmentIDs": []
+      },
+      "status": 201,
+      "response": {
+        "requestID": "d13e4ad3-8330-435d-bdbc-1ba85daa1a17",
+        "status": "received"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/requests",
+      "request": {
+        "clientRequestID": "ab0a9bf4-27b2-4d9c-9a8d-3c6484c8ef3e",
+        "kind": "company",
+        "companyName": "Example Field Crew",
+        "requiredFields": [
+          "Time",
+          "Address",
+          "Notes"
+        ],
+        "contact": "partner@example.invalid",
+        "description": "We need an inspection template for our work crew.",
+        "attachmentIDs": []
+      },
+      "status": 201,
+      "response": {
+        "requestID": "d13e4ad3-8330-435d-bdbc-1ba85daa1a17",
+        "status": "received"
+      }
+    }
+  ]
+}

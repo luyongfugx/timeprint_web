@@ -1,99 +1,72 @@
 "use client";
+import { useState, type FormEvent } from "react";
 
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { toast } from "sonner";
-import { z } from "zod";
+import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-
-const FormSchema = z.object({
-  email: z.string().email({ message: "Please enter a valid email address." }),
-  password: z.string().min(6, { message: "Password must be at least 6 characters." }),
-  remember: z.boolean().optional(),
-});
+import { useUserStore } from "@/stores/users/userStore";
 
 export function LoginForm() {
-  const form = useForm<z.infer<typeof FormSchema>>({
-    resolver: zodResolver(FormSchema),
-    defaultValues: {
-      email: "",
-      password: "",
-      remember: false,
-    },
-  });
-
-  const onSubmit = async (data: z.infer<typeof FormSchema>) => {
-    toast("You submitted the following values", {
-      description: (
-        <pre className="mt-2 w-[320px] rounded-md bg-neutral-950 p-4">
-          <code className="text-white">{JSON.stringify(data, null, 2)}</code>
-        </pre>
-      ),
-    });
-  };
-
+  const router = useRouter();
+  const setUser = useUserStore((s) => s.setUser);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    setBusy(true);
+    setError("");
+    try {
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: form.get("email"), password: form.get("password") }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        setError(response.status === 429 ? "尝试次数过多，请稍后再试" : (data.error?.message ?? "登录失败，请重试"));
+        return;
+      }
+      setUser(data.user);
+      router.replace("/dashboard/watermark");
+      router.refresh();
+    } catch {
+      setError("连接失败，请稍后重试");
+    } finally {
+      setBusy(false);
+    }
+  }
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        <FormField
-          control={form.control}
+    <form onSubmit={submit} className="space-y-5">
+      <div className="space-y-2">
+        <label htmlFor="email" className="text-sm font-medium">
+          邮箱
+        </label>
+        <Input
+          id="email"
           name="email"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Email Address</FormLabel>
-              <FormControl>
-                <Input id="email" type="email" placeholder="you@example.com" autoComplete="email" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
+          type="email"
+          autoComplete="username"
+          required
+          maxLength={254}
+          placeholder="请输入管理员邮箱"
         />
-        <FormField
-          control={form.control}
-          name="password"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Password</FormLabel>
-              <FormControl>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="••••••••"
-                  autoComplete="current-password"
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="remember"
-          render={({ field }) => (
-            <FormItem className="flex flex-row items-center">
-              <FormControl>
-                <Checkbox
-                  id="login-remember"
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
-                  className="size-4"
-                />
-              </FormControl>
-              <FormLabel htmlFor="login-remember" className="text-muted-foreground ml-1 text-sm font-medium">
-                Remember me for 30 days
-              </FormLabel>
-            </FormItem>
-          )}
-        />
-        <Button className="w-full" type="submit">
-          Login
-        </Button>
-      </form>
-    </Form>
+      </div>
+      <div className="space-y-2">
+        <label htmlFor="password" className="text-sm font-medium">
+          密码
+        </label>
+        <Input id="password" name="password" type="password" autoComplete="current-password" required maxLength={256} />
+      </div>
+      {error && (
+        <p role="alert" className="text-sm text-red-600">
+          {error}
+        </p>
+      )}
+      <Button className="w-full" type="submit" disabled={busy}>
+        {busy ? "正在登录…" : "登录"}
+      </Button>
+    </form>
   );
 }
