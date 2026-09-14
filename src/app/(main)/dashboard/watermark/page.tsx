@@ -532,9 +532,11 @@ export default function Page() {
           {rows.map((row) => (
             <article key={row.id} className="space-y-3 rounded-xl border p-5">
               <div className="flex flex-wrap justify-between gap-3">
-                <h2 className="font-semibold">
-                  {[row.watermark_name, row.company_name].find(Boolean) ??
-                    (tab === "templates" ? "私密／历史水印" : row.kind === "company" ? "公司模板需求" : "内容审核")}
+                <h2 className="font-semibold break-words">
+                  {tab === "templates"
+                    ? `名称：${row.watermark_name?.trim() ? row.watermark_name : "未填写"}`
+                    : ([row.watermark_name, row.company_name].find(Boolean) ??
+                      (row.kind === "company" ? "公司模板需求" : "内容审核"))}
                 </h2>
                 {tab !== "templates" && (
                   <span className="text-muted-foreground text-sm">{new Date(row.created_at).toLocaleString()}</span>
@@ -545,6 +547,7 @@ export default function Page() {
                   <div className="grid items-start gap-4 sm:grid-cols-[240px_minmax(0,1fr)]">
                     <CoverPreview row={row} onOpen={() => openPreview(row, "cover")} />
                     <div className="space-y-2 text-sm break-words">
+                      <p>公司名／创建者：{row.company_name?.trim() ? row.company_name : "未填写"}</p>
                       <p className="font-mono">code: {row.share_code}</p>
                       <p className="text-sm">
                         状态:{" "}
