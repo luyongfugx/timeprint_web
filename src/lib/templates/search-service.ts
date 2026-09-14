@@ -191,7 +191,7 @@ export async function candidates(query: string, popular: boolean, excluded: stri
     args.push(query, query, query, query);
   }
   const data = await rows<{ id: string }>(
-    `SELECT CAST(id AS CHAR) AS id FROM watermarks_share_links WHERE visibility='public' AND discovery_state='eligible' AND status=0 AND removed_at IS NULL AND (CASE WHEN contract_version=1 THEN expire_time=0 OR expire_time>UNIX_TIMESTAMP() ELSE expires_at IS NULL OR expires_at>UTC_TIMESTAMP(3) END) ${filter} ORDER BY ${order} LIMIT 200`,
+    `SELECT CAST(id AS CHAR) AS id FROM watermarks_share_links WHERE visibility='public' AND discovery_state='eligible' AND status=0 AND removed_at IS NULL AND (CASE WHEN contract_version=1 THEN expire_time IS NULL OR expire_time=0 OR expire_time>UNIX_TIMESTAMP() ELSE expires_at IS NULL OR expires_at>UTC_TIMESTAMP(3) END) ${filter} ORDER BY ${order} LIMIT 200`,
     args,
   );
   return data.map((t) => t.id);

@@ -40,7 +40,14 @@ export function legacyURL(value: string, kind: "cover" | "payload" | "logo") {
     .split(",")
     .map((v) => v.trim())
     .filter(Boolean);
-  const prefix = { cover: "ugc_cover", payload: "ugc_json", logo: "ugc_logo" }[kind];
+  // Historical templates also reference the app's built-in logos in wm_logo.
+  const prefix = { cover: "ugc_cover", payload: "ugc_json", logo: "(?:ugc_logo|wm_logo)" }[kind];
+  let pathname: string;
+  try {
+    pathname = decodeURIComponent(u.pathname);
+  } catch {
+    throw new TemplateError("RESOURCE_INVALID", 422);
+  }
   if (
     u.protocol !== "https:" ||
     u.username ||
@@ -48,7 +55,7 @@ export function legacyURL(value: string, kind: "cover" | "payload" | "logo") {
     u.port ||
     u.hash ||
     !hosts.includes(u.hostname) ||
-    !new RegExp(`^/(?:android/)?${prefix}/[a-zA-Z0-9_.-]+$`).test(u.pathname)
+    !new RegExp(`^/(?:android/)?${prefix}/[\\p{L}\\p{N}_.-]+$`, "u").test(pathname)
   )
     throw new TemplateError("RESOURCE_INVALID", 422, "The resource source is not allowed.");
   return u;

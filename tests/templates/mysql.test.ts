@@ -22,6 +22,7 @@ import {
   resolveRequest,
   editTemplateMetadata,
   deleteTemplate,
+  attachLegacy,
 } from "../../src/lib/templates/transactions";
 
 import examples from "./fixtures/contract-examples.json";
@@ -537,5 +538,46 @@ test(
     const privateDraft = await draft("private", title);
     await publish(privateDraft.req, privateDraft.input);
     assert.equal((await (await searchLegacy()).json()).results.length, 0);
+  },
+);
+
+test(
+  "legacy public approval preserves identity and expiry and makes sealed resources searchable",
+  { skip: !active },
+  async () => {
+    const name = `ApprovedLegacy-${randomUUID()}`;
+    const oldDraft = await draft("public", name);
+    const old = await publish(oldDraft.req, oldDraft.input, 1, 2592000);
+    const id = old.receipt.templateID;
+    const [before] = await rows<any>("SELECT * FROM template_records WHERE id=?", [id]);
+    assert.equal((await candidates(name, false, [])).length, 0);
+    const sealed = await draft("public", name);
+    await attachLegacy(id, sealed.s.id, before.updated_at, {
+      admin: "test-maintenance",
+      reason: "Restore historical public discovery",
+    });
+    const [after] = await rows<any>("SELECT * FROM template_records WHERE id=?", [id]);
+    for (const key of [
+      "share_code",
+      "created_at",
+      "expire_time",
+      "contract_version",
+      "watermark_name",
+      "company_name",
+      "status",
+    ])
+      assert.equal(after[key], before[key]);
+    assert.equal(after.visibility, "public");
+    assert.equal(after.discovery_state, "eligible");
+    const page = await publicPage({ locale: "en", limit: 20, excludedTemplateIDs: [] }, name, "keyword");
+    assert.deepEqual(
+      page.items.map((t) => t.templateID),
+      [id],
+    );
+    const payload = await payloadResponse(await readTemplate(id));
+    assert.equal(payload.status, 200);
+    assert.equal("itemHistories" in (await payload.json()), false);
+    await write("UPDATE watermarks_share_links SET status=-1 WHERE id=?", [id]);
+    assert.deepEqual(await candidates(name, false, []), []);
   },
 );

@@ -147,8 +147,18 @@ test("invalid payloads, deep JSON, large bodies, MIME spoofing and private netwo
     "/android/ugc_cover/file.png",
     "/android/ugc_json/%2Ffile.json",
     "/other/ugc_json/file.json",
+    "/ugc_json/%252Fprivate.json",
+    "/ugc_json/%ZZ.json",
   ])
     assert.throws(() => legacyURL(`https://assets.timeprint.example${path}`, "payload"));
+  const localized = "https://assets.timeprint.example/android/ugc_json/٢٠٢٦٠٨٣١_3gup.json";
+  assert.equal(
+    legacyURL("https://assets.timeprint.example/wm_logo/jt_express_logo2.png", "logo").pathname,
+    "/wm_logo/jt_express_logo2.png",
+  );
+  assert.throws(() => legacyURL("https://assets.timeprint.example/wm_logo/jt_express_logo2.png", "payload"));
+  assert.equal(decodeURIComponent(legacyURL(localized, "payload").pathname), "/android/ugc_json/٢٠٢٦٠٨٣١_3gup.json");
+  assert.equal(legacyURL(encodeURI(localized), "payload").href, legacyURL(localized, "payload").href);
   for (const url of [
     "https://evil.example/ugc_json/1.json",
     "http://assets.timeprint.example/ugc_json/1.json",
