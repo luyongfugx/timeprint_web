@@ -172,7 +172,8 @@ export async function adminRoute(req: Request, path: string[]) {
         const [count] = await rows<{ total: string }>("SELECT COUNT(*) AS total FROM template_reports");
         const reports = await rows<Record<string, any>>(
           `SELECT r.id,CAST(r.template_id AS CHAR) AS template_id,r.reason,r.source,r.status,r.created_at,r.resolved_at,r.resolution,
-            t.id AS watermark_id,t.watermark_name,t.company_name,t.share_code,t.status AS watermark_status,t.created_at AS watermark_created_at
+            t.id AS watermark_id,t.watermark_name,t.company_name,t.share_code,t.status AS watermark_status,t.created_at AS watermark_created_at,
+            t.contract_version,t.visibility,t.expire_time,t.expires_at,t.use_count
            FROM template_reports r LEFT JOIN template_records t ON t.id=r.template_id
            ORDER BY r.created_at DESC,r.id DESC LIMIT ${pageSize.data} OFFSET ${offset}`,
         );
@@ -185,6 +186,11 @@ export async function adminRoute(req: Request, path: string[]) {
               share_code,
               watermark_status,
               watermark_created_at,
+              contract_version,
+              visibility,
+              expire_time,
+              expires_at,
+              use_count,
               ...report
             }) => ({
               ...report,
@@ -198,6 +204,11 @@ export async function adminRoute(req: Request, path: string[]) {
                       share_code,
                       status: watermark_status,
                       created_at: watermark_created_at,
+                      contract_version,
+                      visibility,
+                      expire_time,
+                      expires_at,
+                      use_count,
                       coverPreviewURL: `/api/admin/templates/${encodeURIComponent(watermark_id)}/cover`,
                       payloadDownloadURL: `/api/admin/templates/${encodeURIComponent(watermark_id)}/payload`,
                     },

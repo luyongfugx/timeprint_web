@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { reportReasonLabel } from "@/lib/templates/report-reasons";
 
 import { AssetPreview } from "./asset-preview";
 import { LanguagePicker } from "./language-picker";
@@ -25,6 +26,7 @@ type Row = {
   expire_time?: number;
   use_count?: number;
   template_id?: string;
+  template?: Row | null;
   reason?: string;
   kind?: string;
   description?: string;
@@ -99,6 +101,52 @@ function CoverPreview({ row, onOpen }: { row: Row; onOpen: () => void }) {
     </div>
   );
 }
+function watermarkName(row?: Row | null) {
+  return row?.watermark_name?.trim() ? row.watermark_name : "未填写";
+}
+function WatermarkDetails({ row, onPreview }: { row: Row; onPreview: (row: Row, kind: "cover" | "json") => void }) {
+  return (
+    <div className="grid items-start gap-4 sm:grid-cols-[240px_minmax(0,1fr)]">
+      <CoverPreview row={row} onOpen={() => onPreview(row, "cover")} />
+      <div className="space-y-2 text-sm break-words">
+        <p>公司名／创建者：{row.company_name?.trim() ? row.company_name : "未填写"}</p>
+        <p className="font-mono">code: {row.share_code}</p>
+        <p className="text-sm">
+          状态:{" "}
+          <span className={Number(row.status) === 0 ? "text-emerald-600" : "text-red-600"}>
+            {Number(row.status) === 0 ? "正常" : "已下架"}
+          </span>
+        </p>
+        <p className="text-muted-foreground text-sm">
+          {row.visibility === "public" ? "公开 · " : row.visibility === "private" ? "私密 · " : ""}
+          使用 {row.use_count ?? 0} 次
+        </p>
+        <p className="text-sm">创建时间: {new Date(row.created_at).toLocaleString("zh-CN", { hour12: false })}</p>
+        <Expiry row={row} />
+        <div className="flex flex-wrap gap-3 pt-2">
+          {row.coverPreviewURL && (
+            <button
+              type="button"
+              onClick={() => onPreview(row, "cover")}
+              className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-700 hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-300"
+            >
+              查看大图
+            </button>
+          )}
+          {row.payloadDownloadURL && (
+            <button
+              type="button"
+              onClick={() => onPreview(row, "json")}
+              className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-700 hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-300"
+            >
+              查看模板 JSON
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
 export default function Page() {
   const [preview, setPreview] = useState<{ kind: "cover" | "json"; url: string; name: string } | null>(null);
   function openPreview(row: Row, kind: "cover" | "json") {
@@ -130,6 +178,7 @@ export default function Page() {
   const [review, setReview] = useState<{
     row: Row;
     title: string;
+    isReport: boolean;
     path: string;
     method: "POST" | "PATCH";
     data: { decision?: "remove" | "keep"; status?: string };
@@ -149,6 +198,7 @@ export default function Page() {
     setReview({
       row,
       title,
+      isReport: report,
       data,
       path: report ? `/reports/${encodeURIComponent(row.id)}/resolve` : `/requests/${encodeURIComponent(row.id)}`,
       method: report ? "POST" : "PATCH",
@@ -280,7 +330,7 @@ export default function Page() {
           if (!open && !saving) setReview(null);
         }}
       >
-        <DialogContent showCloseButton={!saving}>
+        <DialogContent showCloseButton={!saving} className="max-h-[90dvh] overflow-y-auto sm:max-w-3xl">
           <DialogHeader>
             <DialogTitle>{review?.title} · 处理说明</DialogTitle>
             <DialogDescription>填写本条记录的处理依据或结果，确认后将操作与说明一起提交。</DialogDescription>
@@ -292,15 +342,24 @@ export default function Page() {
               void saveReview();
             }}
           >
+            {review?.row.template && (
+              <section className="space-y-3" aria-label="被举报水印">
+                <h3 className="font-semibold break-words">名称：{watermarkName(review.row.template)}</h3>
+                <WatermarkDetails row={review.row.template} onPreview={openPreview} />
+              </section>
+            )}
             <div className="bg-muted space-y-2 rounded-lg p-3 text-sm">
               <p className="break-all">记录 ID：{review?.row.id}</p>
               {(review?.row.submitted_code ?? review?.row.template_id) && (
                 <p className="break-all">关联水印：{review?.row.submitted_code ?? review?.row.template_id}</p>
               )}
               <p className="max-h-32 overflow-y-auto break-words whitespace-pre-wrap">
-                {review?.row.description ?? review?.row.reason}
+                {review?.isReport ? `举报理由：${reportReasonLabel(review.row.reason)}` : review?.row.description}
               </p>
             </div>
+            {review?.data.decision && review.row.template === null && (
+              <p className="text-muted-foreground text-sm">关联水印已不存在，无法预览。</p>
+            )}
             {review?.data.decision === "remove" && (
               <p className="text-sm text-orange-600">确认后将下架对应水印，分享链接停止访问。</p>
             )}
@@ -533,56 +592,21 @@ export default function Page() {
                 <h2 className="font-semibold break-words">
                   {tab === "templates"
                     ? `名称：${row.watermark_name?.trim() ? row.watermark_name : "未填写"}`
-                    : ([row.watermark_name, row.company_name].find(Boolean) ??
-                      (row.kind === "company" ? "公司模板需求" : "内容审核"))}
+                    : tab === "reports"
+                      ? `名称：${watermarkName(row.template)}`
+                      : ([row.watermark_name, row.company_name].find(Boolean) ??
+                        (row.kind === "company" ? "公司模板需求" : "内容审核"))}
                 </h2>
                 {tab !== "templates" && (
-                  <span className="text-muted-foreground text-sm">{new Date(row.created_at).toLocaleString()}</span>
+                  <span className="text-muted-foreground text-sm">
+                    {tab === "reports" ? "举报时间：" : ""}
+                    {new Date(row.created_at).toLocaleString()}
+                  </span>
                 )}
               </div>
               {tab === "templates" ? (
                 <>
-                  <div className="grid items-start gap-4 sm:grid-cols-[240px_minmax(0,1fr)]">
-                    <CoverPreview row={row} onOpen={() => openPreview(row, "cover")} />
-                    <div className="space-y-2 text-sm break-words">
-                      <p>公司名／创建者：{row.company_name?.trim() ? row.company_name : "未填写"}</p>
-                      <p className="font-mono">code: {row.share_code}</p>
-                      <p className="text-sm">
-                        状态:{" "}
-                        <span className={Number(row.status) === 0 ? "text-emerald-600" : "text-red-600"}>
-                          {Number(row.status) === 0 ? "正常" : "已下架"}
-                        </span>
-                      </p>
-                      <p className="text-muted-foreground text-sm">
-                        {row.visibility === "public" ? "公开 · " : row.visibility === "private" ? "私密 · " : ""}
-                        使用 {row.use_count ?? 0} 次
-                      </p>
-                      <p className="text-sm">
-                        创建时间: {new Date(row.created_at).toLocaleString("zh-CN", { hour12: false })}
-                      </p>
-                      <Expiry row={row} />
-                      <div className="flex flex-wrap gap-3 pt-2">
-                        {row.coverPreviewURL && (
-                          <button
-                            type="button"
-                            onClick={() => openPreview(row, "cover")}
-                            className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-700 hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-300"
-                          >
-                            查看大图
-                          </button>
-                        )}
-                        {row.payloadDownloadURL && (
-                          <button
-                            type="button"
-                            onClick={() => openPreview(row, "json")}
-                            className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-700 hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-300"
-                          >
-                            查看模板 JSON
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
+                  <WatermarkDetails row={row} onPreview={openPreview} />
                   <div className="flex flex-wrap gap-2 border-t pt-3 text-sm">
                     <a
                       className="inline-flex min-h-9 items-center justify-center rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 font-medium text-blue-700 transition-colors hover:bg-blue-100 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-300 dark:hover:bg-blue-900/60"
@@ -617,10 +641,20 @@ export default function Page() {
                 </>
               ) : (
                 <>
+                  {tab === "reports" &&
+                    (row.template ? (
+                      <WatermarkDetails row={row.template} onPreview={openPreview} />
+                    ) : (
+                      <p className="text-muted-foreground text-sm">关联水印已不存在，无法预览。</p>
+                    ))}
                   <p className="text-sm">
-                    状态：{row.status} {row.template_id && ` · 模板 ${row.template_id}`}
+                    {tab === "reports"
+                      ? `举报状态：${row.status === "resolved" ? "已处理" : "待处理"}`
+                      : `状态：${row.status}`}
                   </p>
-                  <p className="break-words whitespace-pre-wrap">{row.reason ?? row.description}</p>
+                  <p className="break-words whitespace-pre-wrap">
+                    {tab === "reports" ? `举报理由：${reportReasonLabel(row.reason)}` : row.description}
+                  </p>
                   {row.contact && <p className="text-sm">联系方式：{row.contact}</p>}
                   {row.submitted_code && <p className="font-mono">分享码：{row.submitted_code}</p>}
                   {row.required_fields?.length ? <p>所需字段：{row.required_fields.join("、")}</p> : null}

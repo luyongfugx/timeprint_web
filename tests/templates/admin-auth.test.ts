@@ -213,6 +213,11 @@ test(
         assert.equal(report.template.company_name, "示例创建者");
         assert.equal(report.template.share_code, code);
         assert.equal(report.template.status, status);
+        assert.equal(report.template.contract_version, 1);
+        assert.equal(report.template.visibility, null);
+        assert.equal(String(report.template.expire_time), "0");
+        assert.equal(report.template.expires_at, null);
+        assert.equal(String(report.template.use_count), "0");
         assert.equal(report.template.coverPreviewURL, `/api/admin/templates/${templateID}/cover`);
         assert.equal(report.template.payloadDownloadURL, `/api/admin/templates/${templateID}/payload`);
         assert.equal("actor_hash" in report, false);
