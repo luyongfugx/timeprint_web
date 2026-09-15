@@ -10,6 +10,7 @@ import { canonical, shareCode } from "../../src/lib/templates/crypto";
 import { boundedBytes, body } from "../../src/lib/templates/http";
 import { publicIPv4, legacyURL } from "../../src/lib/templates/legacy-assets";
 import { parsePayload, mapImages, payloadBytes } from "../../src/lib/templates/payload";
+import { reportReasonLabel } from "../../src/lib/templates/report-reasons";
 import { queryCode, cursorEncode, cursorDecode } from "../../src/lib/templates/search-service";
 import { trendingLocaleCandidates } from "../../src/lib/templates/trending-locales";
 
@@ -17,6 +18,14 @@ import examples from "./fixtures/contract-examples.json";
 
 process.env.TEMPLATE_CURSOR_SIGNING_KEY = "test-only-cursor-secret-32-characters";
 const fixture = examples.examples;
+test("report reasons use the iOS Chinese wording", () => {
+  assert.equal(reportReasonLabel("intellectual_property"), "侵犯知识产权");
+  assert.equal(reportReasonLabel("fraud_deceptive"), "欺诈或误导行为");
+  assert.equal(reportReasonLabel("impersonation_unauthorized"), "冒用身份或未经授权使用");
+  assert.equal(reportReasonLabel("privacy_violation"), "侵犯隐私");
+  assert.equal(reportReasonLabel(), "未填写");
+  assert.equal(reportReasonLabel("legacy_reason"), "其他：legacy_reason");
+});
 test("trending locales preserve exact overrides, language parents and Chinese scripts", () => {
   assert.deepEqual(trendingLocaleCandidates("en-AU"), ["en-au", "en"]);
   assert.deepEqual(trendingLocaleCandidates("fr-CA"), ["fr-ca", "fr", "en"]);

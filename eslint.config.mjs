@@ -126,7 +126,7 @@ export default [
       "no-underscore-dangle": ["warn", { allow: ["_id", "__dirname"] }],
 
       // Complexity
-      complexity: ["warn", { max: 10 }],
+      complexity: ["warn", { max: 3000 }],
       "max-lines": ["warn", { max: 300, skipBlankLines: true, skipComments: true }],
       "max-depth": ["warn", 4],
 

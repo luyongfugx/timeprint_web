@@ -172,3 +172,55 @@ test("admin: Chinese and emoji search work with ASCII share codes and ignore loc
     await database().$executeRawUnsafe("DELETE FROM watermarks_share_links WHERE id=?", templateID);
   }
 });
+
+test(
+  "admin: reports include reviewable watermark metadata without private internal fields",
+  { skip: !active },
+  async () => {
+    const { adminRoute } = await import("../../src/lib/templates/admin-routes");
+    const { cookie } = await signIn();
+    const templateID = randomUUID(),
+      reportID = randomUUID();
+    const code = randomUUID().replaceAll("-", "").slice(0, 8).toUpperCase();
+    await database().$executeRawUnsafe(
+      "INSERT INTO watermarks_share_links(id,watermark_name,company_name,cover_image_url,json_download_url,share_code,status) VALUES (?,?,?,'https://example.invalid/cover','https://example.invalid/payload',?,-1)",
+      templateID,
+      "被举报水印",
+      "示例创建者",
+      code,
+    );
+    try {
+      await database().$executeRawUnsafe(
+        "INSERT INTO template_reports(id,template_id,actor_hash,client_request_id,request_hash,reason,source) VALUES (?,?,?,?,?,'intellectual_property','template_detail')",
+        reportID,
+        templateID,
+        "a".repeat(64),
+        randomUUID(),
+        "b".repeat(64),
+      );
+      const url = `${origin}/api/admin/templates/reports?pageSize=100`;
+      assert.equal((await adminRoute(new Request(url), ["reports"])).status, 401);
+      for (const status of [-1, -2]) {
+        await database().$executeRawUnsafe("UPDATE watermarks_share_links SET status=? WHERE id=?", status, templateID);
+        const response = await adminRoute(new Request(url, { headers: { cookie } }), ["reports"]);
+        assert.equal(response.status, 200);
+        const result = await response.json();
+        const report = result.results.find((row: { id: string }) => row.id === reportID);
+        assert.equal(report.reason, "intellectual_property");
+        assert.equal(report.source, "template_detail");
+        assert.equal(report.template.id, templateID);
+        assert.equal(report.template.watermark_name, "被举报水印");
+        assert.equal(report.template.company_name, "示例创建者");
+        assert.equal(report.template.share_code, code);
+        assert.equal(report.template.status, status);
+        assert.equal(report.template.coverPreviewURL, `/api/admin/templates/${templateID}/cover`);
+        assert.equal(report.template.payloadDownloadURL, `/api/admin/templates/${templateID}/payload`);
+        assert.equal("actor_hash" in report, false);
+        assert.equal("cover_image_url" in report.template, false);
+      }
+    } finally {
+      await database().$executeRawUnsafe("DELETE FROM template_reports WHERE id=?", reportID);
+      await database().$executeRawUnsafe("DELETE FROM watermarks_share_links WHERE id=?", templateID);
+    }
+  },
+);

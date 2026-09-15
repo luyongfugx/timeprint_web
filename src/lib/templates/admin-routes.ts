@@ -168,12 +168,50 @@ export async function adminRoute(req: Request, path: string[]) {
           ),
         );
       }
-      if (path.length === 1 && ["reports", "requests"].includes(path[0]) && req.method === "GET") {
-        const table = path[0] === "reports" ? "template_reports" : "template_requests";
+      if (path.length === 1 && path[0] === "reports" && req.method === "GET") {
+        const [count] = await rows<{ total: string }>("SELECT COUNT(*) AS total FROM template_reports");
+        const reports = await rows<Record<string, any>>(
+          `SELECT r.id,CAST(r.template_id AS CHAR) AS template_id,r.reason,r.source,r.status,r.created_at,r.resolved_at,r.resolution,
+            t.id AS watermark_id,t.watermark_name,t.company_name,t.share_code,t.status AS watermark_status,t.created_at AS watermark_created_at
+           FROM template_reports r LEFT JOIN template_records t ON t.id=r.template_id
+           ORDER BY r.created_at DESC,r.id DESC LIMIT ${pageSize.data} OFFSET ${offset}`,
+        );
+        return json({
+          results: reports.map(
+            ({
+              watermark_id,
+              watermark_name,
+              company_name,
+              share_code,
+              watermark_status,
+              watermark_created_at,
+              ...report
+            }) => ({
+              ...report,
+              template:
+                watermark_id == null
+                  ? null
+                  : {
+                      id: String(watermark_id),
+                      watermark_name,
+                      company_name,
+                      share_code,
+                      status: watermark_status,
+                      created_at: watermark_created_at,
+                      coverPreviewURL: `/api/admin/templates/${encodeURIComponent(watermark_id)}/cover`,
+                      payloadDownloadURL: `/api/admin/templates/${encodeURIComponent(watermark_id)}/payload`,
+                    },
+            }),
+          ),
+          page: page.data,
+          pageSize: pageSize.data,
+          total: Number(count.total),
+        });
+      }
+      if (path.length === 1 && path[0] === "requests" && req.method === "GET") {
+        const table = "template_requests";
         const columns =
-          path[0] === "reports"
-            ? "id,CAST(template_id AS CHAR) AS template_id,reason,source,status,created_at,resolved_at,resolution"
-            : "id,kind,CAST(template_id AS CHAR) AS template_id,submitted_code,company_name,description,contact,required_fields,attachment_ids,status,created_at,resolved_at,resolution";
+          "id,kind,CAST(template_id AS CHAR) AS template_id,submitted_code,company_name,description,contact,required_fields,attachment_ids,status,created_at,resolved_at,resolution";
         const [count] = await rows<{ total: string }>(`SELECT COUNT(*) AS total FROM ${table}`);
         return json({
           results: await rows(

@@ -32,6 +32,7 @@ export async function POST(req: Request) {
           })
           .strict(),
       );
+      console.log(input);
       const result = await publish(
         req,
         {
@@ -50,6 +51,7 @@ export async function POST(req: Request) {
         1,
         [0, 2_592_000, 86_400, 3_600][input.expireType],
       );
+      console.log(result);
       return json({ success: true, shareCode: result.receipt.shareCode, shareLink: result.receipt.shareLink });
     },
     true,
