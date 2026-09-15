@@ -17,6 +17,7 @@ export async function POST(req: Request) {
   return endpoint(
     req,
     async () => {
+      console.log("post before requeslimit");
       await requestLimit(req, "legacy-create", 10);
       const input = await body(
         req,
