@@ -16,6 +16,20 @@ if (!["https://wm.timeprint.net", "https://team.timeprint.net"].includes(origin)
   throw new Error("Unsupported API origin");
 if (!Number.isInteger(limit) || limit < 1 || limit > 10000) throw new Error("Invalid limit");
 const reportPath = option("--report");
+const idsFile = option("--ids-file");
+const selectedIDs = idsFile ? JSON.parse(readFileSync(idsFile, "utf8")) : null;
+if (
+  selectedIDs !== null &&
+  (!Array.isArray(selectedIDs) ||
+    !selectedIDs.length ||
+    selectedIDs.length > 10000 ||
+    selectedIDs.some((id) => typeof id !== "string" || !/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(id)))
+)
+  throw new Error("--ids-file must contain a non-empty JSON array of template UUIDs");
+const reason = option(
+  "--reason",
+  "Restore previously public legacy shares to v2 discovery, authorized by project owner on 2026-09-14.",
+);
 if (apply && (!reportPath || !option("--admin-email"))) throw new Error("Apply requires --report and --admin-email");
 if (reportPath && existsSync(reportPath)) throw new Error("Use a new report path to preserve prior checkpoints");
 const db = createDatabase();
@@ -95,7 +109,7 @@ async function seal(entry, admin) {
   await api("complete", { coverAssetID: cover.assetID, payloadAssetID: json.assetID });
   await attachLegacy(entry.before.id, sid, new Date(entry.before.updated_at).toISOString(), {
     admin,
-    reason: "Restore previously public legacy shares to v2 discovery, authorized by project owner on 2026-09-14.",
+    reason,
   });
 }
 const report = { startedAt: new Date().toISOString(), origin, apply, records: [] };
@@ -110,11 +124,15 @@ const save = () => {
   renameSync(`${path}.tmp`, path);
 };
 try {
-  let records = await db.$queryRawUnsafe(`SELECT id,share_code,updated_at,visibility,discovery_state,status,expire_time,
+  let records = await db.$queryRawUnsafe(
+    `SELECT id,share_code,updated_at,visibility,discovery_state,status,expire_time,
     cover_asset_id,payload_asset_id,cover_width,cover_height,payload_sha256,cover_image_url,json_download_url
     FROM watermarks_share_links WHERE contract_version=1 AND visibility IS NULL AND discovery_state='held'
     AND status=0 AND removed_at IS NULL AND (expire_time IS NULL OR expire_time=0 OR expire_time>UNIX_TIMESTAMP())
-    ORDER BY created_at DESC,id DESC LIMIT ${limit}`);
+    ${selectedIDs ? `AND id IN (${selectedIDs.map(() => "?").join(",")})` : ""}
+    ORDER BY created_at DESC,id DESC LIMIT ${limit}`,
+    ...(selectedIDs ?? []),
+  );
   const retryReport = option("--retry-report");
   if (retryReport) {
     const failed = new Set(
