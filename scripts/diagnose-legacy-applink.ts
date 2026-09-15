@@ -1,5 +1,7 @@
-// 复现旧版 POST /api/applink 的资源快照链路（不写库、不依赖 COS 凭据）。
-// 用法：node --conditions=react-server --import tsx scripts/diagnose-legacy-applink.ts
+// Replays the legacy POST /api/applink resource chain without touching MySQL or
+// requiring COS credentials. Usage:
+//   TEMPLATE_ALLOWED_LEGACY_ASSET_HOSTS=<host> node --conditions=react-server \
+//     --import tsx scripts/diagnose-legacy-applink.ts <coverURL> <jsonURL>
 import { resolve4 } from "node:dns/promises";
 
 import { imageMetadata, referenceURL } from "../src/lib/templates/asset-service";
@@ -7,9 +9,8 @@ import { TemplateError } from "../src/lib/templates/errors";
 import { fetchLegacy, legacyURL, publicIPv4 } from "../src/lib/templates/legacy-assets";
 import { imageFields, parsePayload } from "../src/lib/templates/payload";
 
-const coverImageUrl =
-  "https://wm-1330977225.cos.ap-singapore.myqcloud.com/android/ugc_cover/20260915_y7Al_1080_464.jpg";
-const jsonDownloadUrl = "https://wm-1330977225.cos.ap-singapore.myqcloud.com/android/ugc_json/20260915_Pmzn.json";
+const [coverImageUrl = "", jsonDownloadUrl = ""] = process.argv.slice(2);
+type Payload = Record<string, unknown>;
 
 function describe(e: unknown) {
   if (e instanceof TemplateError) return `TemplateError code=${e.code} status=${e.status} message="${e.message}"`;
@@ -17,85 +18,84 @@ function describe(e: unknown) {
 }
 async function step<T>(name: string, fn: () => T | Promise<T>): Promise<T | undefined> {
   try {
-    const v = await fn();
-    console.log(`PASS  ${name} :: ${typeof v === "string" ? v : JSON.stringify(v)}`);
-    return v;
+    const value = await fn();
+    console.log(`PASS  ${name} :: ${typeof value === "string" ? value : JSON.stringify(value)}`);
+    return value;
   } catch (e) {
     console.log(`FAIL  ${name} :: ${describe(e)}`);
     return undefined;
   }
 }
-
+function items(payload: Payload) {
+  const model = payload.watermarkModel as { items?: unknown[] } | undefined;
+  return Array.isArray(model?.items) ? model.items : [];
+}
 async function main() {
+  if (!coverImageUrl || !jsonDownloadUrl) {
+    console.error("用法: ... diagnose-legacy-applink.ts <coverURL> <jsonURL>");
+    process.exitCode = 2;
+    return;
+  }
   console.log("== 环境 ==");
   console.log("TEMPLATE_API_ORIGIN =", process.env.TEMPLATE_API_ORIGIN ?? "(default https://wm.timeprint.net)");
   console.log("TEMPLATE_ALLOWED_LEGACY_ASSET_HOSTS =", process.env.TEMPLATE_ALLOWED_LEGACY_ASSET_HOSTS ?? "(empty)");
-  console.log("TEMPLATE_PUBLIC_ENABLED =", process.env.TEMPLATE_PUBLIC_ENABLED);
   console.log("");
-
   await step("1. legacyURL(cover, kind=cover)", () => legacyURL(coverImageUrl, "cover").href);
   await step("2. legacyURL(json, kind=payload)", () => legacyURL(jsonDownloadUrl, "payload").href);
-  await step("3. DNS resolve4 COS 主机", async () => {
-    const hosts = [...new Set([new URL(coverImageUrl).hostname, new URL(jsonDownloadUrl).hostname])];
-    const out: Record<string, unknown> = {};
-    for (const h of hosts) {
-      const a = await resolve4(h);
-      out[h] = { addresses: a, publicIPv4: a.map((x) => `${x}=${publicIPv4(x)}`) };
-    }
-    return out;
+  await step("3. DNS resolve4 主机", async () => {
+    const host = new URL(coverImageUrl).hostname;
+    const addresses = await resolve4(host);
+    return { host, addresses, publicIPv4: addresses.map((a) => `${a}=${publicIPv4(a)}`) };
   });
   await step("4. fetchLegacy(cover)", async () => {
-    const b = await fetchLegacy(coverImageUrl, "cover");
-    const meta = await imageMetadata(b);
-    return { bytes: b.length, mime: meta.mime, width: meta.width, height: meta.height };
+    const bytes = await fetchLegacy(coverImageUrl, "cover");
+    const meta = await imageMetadata(bytes);
+    return { bytes: bytes.length, mime: meta.mime, width: meta.width, height: meta.height };
   });
   let payloadText = "";
   await step("5. fetchLegacy(json)", async () => {
-    const b = await fetchLegacy(jsonDownloadUrl, "payload");
-    payloadText = b.toString("utf8");
-    return { bytes: b.length, head: payloadText.slice(0, 120) };
+    const bytes = await fetchLegacy(jsonDownloadUrl, "payload");
+    payloadText = bytes.toString("utf8");
+    return { bytes: bytes.length, head: payloadText.slice(0, 120) };
   });
   await step("6. parsePayload(json, visibility=public)", () => {
-    const p = parsePayload(Buffer.from(payloadText, "utf8"), "public") as Record<string, any>;
+    const payload = parsePayload(Buffer.from(payloadText, "utf8"), "public");
     return {
-      topKeys: Object.keys(p).slice(0, 40),
-      schemaVersion: p.schemaVersion ?? null,
-      items: p.watermarkModel?.items?.length ?? null,
-      itemIDs: (p.watermarkModel?.items ?? []).map((i: any) => i?.id),
+      topKeys: Object.keys(payload),
+      schemaVersion: payload.schemaVersion ?? null,
+      itemCount: items(payload).length,
+      itemIDs: items(payload).map((item) => (item as { id?: unknown }).id),
     };
   });
   await step("7. imageFields 中的资源 URL 是否满足 legacyURL 规则", () => {
-    const p = parsePayload(Buffer.from(payloadText, "utf8"), "public") as Record<string, any>;
-    const out: unknown[] = [];
-    for (const f of imageFields(p)) {
-      const value = f.parent[f.key] as string | undefined;
-      if (value == null || value === "") {
-        out.push({ field: `${f.kind}.${f.key}`, value: value ?? null, ok: "empty-skip" });
-        continue;
-      }
+    const payload = parsePayload(Buffer.from(payloadText, "utf8"), "public");
+    return imageFields(payload).map((field) => {
+      const value = field.parent[field.key];
+      if (value == null || value === "") return { field: `${field.kind}.${field.key}`, ok: "empty-skip" };
       try {
-        legacyURL(value, f.kind);
-        out.push({ field: `${f.kind}.${f.key}`, value, ok: true });
+        legacyURL(value as string, field.kind);
+        return { field: `${field.kind}.${field.key}`, url: value, ok: true };
       } catch (e) {
-        out.push({ field: `${f.kind}.${f.key}`, value, ok: false, error: describe(e) });
+        return { field: `${field.kind}.${field.key}`, url: value, ok: false, error: describe(e) };
       }
-    }
-    return out;
+    });
   });
-  await step("8. fetchLegacy(每个 logo) 是否可下载", async () => {
-    const p = parsePayload(Buffer.from(payloadText, "utf8"), "public") as Record<string, any>;
-    const out: unknown[] = [];
-    for (const f of imageFields(p)) {
-      const value = f.parent[f.key] as string | undefined;
-      if (!value || f.kind !== "logo") continue;
+  await step("8. fetchLegacy(每个 logo)", async () => {
+    const payload = parsePayload(Buffer.from(payloadText, "utf8"), "public");
+    const logos = imageFields(payload)
+      .filter((field) => field.kind === "logo")
+      .map((field) => field.parent[field.key])
+      .filter((value): value is string => typeof value === "string" && value !== "");
+    const results = [];
+    for (const url of logos) {
       try {
-        const b = await fetchLegacy(value, "logo");
-        out.push({ value, bytes: b.length });
+        const bytes = await fetchLegacy(url, "logo");
+        results.push({ url, bytes: bytes.length });
       } catch (e) {
-        out.push({ value, error: describe(e) });
+        results.push({ url, error: describe(e) });
       }
     }
-    return out;
+    return results;
   });
   console.log("");
   console.log("== 参考：referenceURL 形态 ==");

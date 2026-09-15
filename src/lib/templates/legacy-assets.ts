@@ -8,6 +8,7 @@ import { apiBase } from "./config";
 import { MAX_IMAGE_BYTES, MAX_PAYLOAD_BYTES, MAX_SESSION_BYTES, type TemplateRow } from "./contracts";
 import { sha256 } from "./crypto";
 import { TemplateError } from "./errors";
+import { logFailure } from "./log";
 import { mapImages, parsePayload, payloadBytes } from "./payload";
 import { registerAssetRecord } from "./repository";
 import { uploadObject } from "./storage";
@@ -60,9 +61,20 @@ export function legacyURL(value: string, kind: "cover" | "payload" | "logo") {
     throw new TemplateError("RESOURCE_INVALID", 422, "The resource source is not allowed.");
   return u;
 }
+// Every legacy resource rejection is silent for the client, so log the reason
+// (stage + host + resolved addresses/status) before dropping the request.
+function failure(stage: string, context: Record<string, unknown>, message?: string) {
+  const error = new TemplateError("RESOURCE_INVALID", 422, message);
+  logFailure(stage, context, error);
+  return error;
+}
+function deny(stage: string, context: Record<string, unknown>, message?: string): never {
+  throw failure(stage, context, message);
+}
 export async function fetchLegacy(value: string, kind: "cover" | "payload" | "logo") {
   const u = legacyURL(value, kind),
-    max = kind === "payload" ? MAX_PAYLOAD_BYTES : MAX_IMAGE_BYTES;
+    max = kind === "payload" ? MAX_PAYLOAD_BYTES : MAX_IMAGE_BYTES,
+    host = u.hostname;
   let addresses = await resolve4(u.hostname);
   // Some development VPNs return fake-IP DNS answers. Resolve those over HTTPS,
   // then apply the same public-address checks and pin the actual connection below.
@@ -72,12 +84,12 @@ export async function fetchLegacy(value: string, kind: "cover" | "payload" | "lo
       redirect: "error",
       cache: "no-store",
     });
-    if (!response.ok) throw new TemplateError("RESOURCE_INVALID", 422);
+    if (!response.ok) deny("legacy-dns-fallback", { kind, host, dnsStatus: response.status, addresses });
     const result = (await response.json()) as { Status?: number; Answer?: { type: number; data: string }[] };
-    if (result.Status !== 0) throw new TemplateError("RESOURCE_INVALID", 422);
+    if (result.Status !== 0) deny("legacy-dns-fallback", { kind, host, dnsStatusCode: result.Status, addresses });
     addresses = (result.Answer ?? []).filter((answer) => answer.type === 1).map((answer) => answer.data);
   }
-  if (!addresses.length || addresses.some((a) => !publicIPv4(a))) throw new TemplateError("RESOURCE_INVALID", 422);
+  if (!addresses.length || addresses.some((a) => !publicIPv4(a))) deny("legacy-dns-address", { kind, host, addresses });
   // Pin the verified address into TLS connection lookup, closing DNS-rebinding gaps.
   // Redirects are rejected entirely; no arbitrary second host is ever fetched.
   return new Promise<Buffer>((resolve, reject) => {
@@ -92,7 +104,8 @@ export async function fetchLegacy(value: string, kind: "cover" | "payload" | "lo
       (res) => {
         if (res.statusCode !== 200) {
           res.destroy();
-          reject(new TemplateError("RESOURCE_INVALID", 422));
+          // This callback is outside the promise chain, so reject instead of throwing.
+          reject(failure("legacy-http-status", { kind, host, statusCode: res.statusCode }));
           return;
         }
         let size = 0;
@@ -103,10 +116,17 @@ export async function fetchLegacy(value: string, kind: "cover" | "payload" | "lo
           else chunks.push(chunk);
         });
         res.on("end", () => resolve(Buffer.concat(chunks, size)));
-        res.on("error", reject);
+        res.on("error", (error) => {
+          logFailure("legacy-http-response", { kind, host, statusCode: res.statusCode }, error);
+          reject(error);
+        });
       },
     );
-    req.on("error", reject);
+    req.on("error", (error) => {
+      // Connection reset, TLS failure or the 10s abort both land here.
+      logFailure("legacy-http-request", { kind, host, address: addresses[0] }, error);
+      reject(error);
+    });
     req.end();
   });
 }

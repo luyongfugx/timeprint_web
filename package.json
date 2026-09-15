@@ -11,7 +11,7 @@
     "format:check": "prettier --check .",
     "prepare": "husky",
     "generate:presets": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' src/scripts/generate-theme-presets.ts",
-    "test:templates": "node --conditions=react-server --import tsx --test tests/templates/contracts.test.ts",
+    "test:templates": "node --conditions=react-server --import tsx --test tests/templates/contracts.test.ts tests/templates/publish.test.ts",
     "test:templates:mysql": "node --conditions=react-server --import tsx --test tests/templates/mysql.test.ts",
     "templates:preflight": "node --env-file=.env.local scripts/migrate-templates.mjs",
     "templates:migrate": "node --env-file=.env.local scripts/migrate-templates.mjs --apply",

@@ -4,12 +4,22 @@ import { z } from "zod";
 
 import { text } from "@/lib/templates/contracts";
 import { body, endpoint, json } from "@/lib/templates/http";
+import { logFailure } from "@/lib/templates/log";
 import { publish } from "@/lib/templates/publish-service";
 import { requestLimit } from "@/lib/templates/routes";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
+// Log the host and file name only; never the whole signed/private URL.
+function resource(value: string) {
+  try {
+    const url = new URL(value);
+    return { host: url.hostname, file: url.pathname.split("/").pop() ?? "" };
+  } catch {
+    return { host: "(invalid-url)", file: "" };
+  }
+}
 export async function OPTIONS(req: Request) {
   return endpoint(req, async () => new Response(null, { status: 204 }), true);
 }
@@ -17,7 +27,6 @@ export async function POST(req: Request) {
   return endpoint(
     req,
     async () => {
-      console.log("post before requeslimit");
       await requestLimit(req, "legacy-create", 10);
       const input = await body(
         req,
@@ -33,27 +42,42 @@ export async function POST(req: Request) {
           })
           .strict(),
       );
-      console.log(input);
-      const result = await publish(
-        req,
-        {
-          contractVersion: 2,
-          clientRequestID: randomUUID(),
-          visibility: "public",
-          watermarkName: input.watermarkName,
-          companyName: input.companyName ?? "",
-          coverImageURL: input.coverImageUrl,
-          jsonDownloadURL: input.jsonDownloadUrl,
-          coverKind: "watermark",
-          coverWidth: 1,
-          coverHeight: 1,
-          userID: input.userId ?? "legacy-anonymous",
-        },
-        1,
-        [0, 2_592_000, 86_400, 3_600][input.expireType],
-      );
-      console.log(result);
-      return json({ success: true, shareCode: result.receipt.shareCode, shareLink: result.receipt.shareLink });
+      try {
+        const result = await publish(
+          req,
+          {
+            contractVersion: 2,
+            clientRequestID: randomUUID(),
+            visibility: "public",
+            watermarkName: input.watermarkName,
+            companyName: input.companyName ?? "",
+            coverImageURL: input.coverImageUrl,
+            jsonDownloadURL: input.jsonDownloadUrl,
+            coverKind: "watermark",
+            coverWidth: 1,
+            coverHeight: 1,
+            userID: input.userId ?? "legacy-anonymous",
+          },
+          1,
+          [0, 2_592_000, 86_400, 3_600][input.expireType],
+        );
+        return json({ success: true, shareCode: result.receipt.shareCode, shareLink: result.receipt.shareLink });
+      } catch (error) {
+        // The client only gets a generic message, so the real reason is logged here.
+        logFailure(
+          "POST /api/applink",
+          {
+            watermarkName: input.watermarkName,
+            companyName: input.companyName ?? "",
+            expireType: input.expireType,
+            actor: input.userId ?? "legacy-anonymous",
+            cover: resource(input.coverImageUrl),
+            payload: resource(input.jsonDownloadUrl),
+          },
+          error,
+        );
+        throw error;
+      }
     },
     true,
   );

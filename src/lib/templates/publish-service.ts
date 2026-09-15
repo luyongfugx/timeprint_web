@@ -19,6 +19,8 @@ export async function publish(
 ): Promise<PublishResult> {
   if (!enabled(input.visibility === "public" ? "PUBLIC" : "PRIVATE"))
     throw new TemplateError("SERVICE_UNAVAILABLE", 503, "Publishing is temporarily unavailable.", true);
+  // The legacy /api/applink adapter passes contract=1 and generates clientRequestID server-side.
+  // input.contractVersion describes the normalized input, not the client protocol.
   if (contract === 2 && req.headers.get("Idempotency-Key") !== input.clientRequestID)
     throw new TemplateError("INVALID_REQUEST", 400, "Idempotency-Key must match clientRequestID.");
   let sid = req.headers.get("X-Template-Upload-Session") ?? "",
@@ -28,6 +30,7 @@ export async function publish(
       throw new TemplateError("UPLOAD_PROTOCOL_REQUIRED", 422, "Private sharing requires a controlled upload session.");
     if (isAssetReference(input.coverImageURL) || isAssetReference(input.jsonDownloadURL))
       throw new TemplateError("UPLOAD_TOKEN_INVALID", 403);
+    // Old apps send ordinary asset URLs without upload headers; create the session for them.
     const snapshot = await legacySnapshot({ ...input, visibility: "public" });
     sid = snapshot.uploadSessionID;
     token = snapshot.uploadToken;
