@@ -1,5 +1,5 @@
 import "server-only";
-import { privateUploadHeaders, signedObjectURL } from "../../../scripts/lib/cos.mjs";
+import { cosConfig, objectKey, privateUploadHeaders, signedObjectURL } from "../../../scripts/lib/cos.mjs";
 
 import { TemplateError } from "./errors";
 import { boundedBytes } from "./http";
@@ -37,4 +37,10 @@ export async function downloadObject(key: string, max: number) {
     throw new TemplateError("PAYLOAD_TOO_LARGE", 413);
   }
   return boundedBytes(response.body, max);
+}
+
+/** Unsigned identity only; reads continue to use controlled, sealed assets. */
+export function cosObjectReference(key: string) {
+  const { Bucket, Region } = cosConfig();
+  return `https://${Bucket}.cos.${Region}.myqcloud.com/${objectKey(key)}`;
 }

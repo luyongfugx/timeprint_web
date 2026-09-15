@@ -291,9 +291,15 @@ test("signed pagination is bound to query and offset; generated codes use the co
   assert.equal(cursorDecode(token, "query-hash").offset, 20);
   assert.throws(() => cursorDecode(token, "other-query"));
   assert.throws(() => cursorDecode(token + "x", "query-hash"));
-  const codes = new Set(Array.from({ length: 1000 }, shareCode));
-  assert.equal(codes.size, 1000);
-  for (const code of codes) assert.match(code, /^T[23456789ABCDEFGHJKLMNPQRSTUVWXYZ]{9}$/);
+  for (let i = 0; i < 1000; i++) {
+    const code = shareCode();
+    assert.match(code, /^(?=.*[A-Z])(?=.*[2-9])[23456789ABCDEFGHJKLMNPQRSTUVWXYZ]{6}$/);
+    assert.equal(queryCode(code, "auto"), code);
+    assert.equal(normalizeCode(code.toLowerCase()), code);
+  }
+  for (const code of ["ABC123", "ABC12345", "T23456789A"]) {
+    assert.equal(queryCode(code, "auto"), code);
+  }
   assert.equal(searchSchema.safeParse({ ...fixture.searchRequest, limit: 51 }).success, false);
   assert.ok(reportSchema.safeParse(fixture.reportRequest).success);
 });

@@ -21,5 +21,11 @@ export function equalSecret(a: string, b: string) {
 }
 export function shareCode() {
   const alphabet = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
-  return "T" + Array.from({ length: 9 }, () => alphabet[randomInt(alphabet.length)]).join("");
+  // Reject single-category codes so automatic search always recognizes the code.
+  // Sampling the whole code preserves a uniform distribution over valid codes.
+  let code: string;
+  do {
+    code = Array.from({ length: 6 }, () => alphabet[randomInt(alphabet.length)]).join("");
+  } while (!/[A-Z]/.test(code) || !/[2-9]/.test(code));
+  return code;
 }

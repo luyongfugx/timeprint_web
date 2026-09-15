@@ -1,5 +1,5 @@
 import "server-only";
-import { session, referenceID } from "./asset-service";
+import { session, referenceID, referenceURL, getAsset, matchesCoverReference } from "./asset-service";
 import { enabled } from "./config";
 import { type CreateInput } from "./contracts";
 import { actorHash } from "./crypto";
@@ -45,10 +45,10 @@ export async function publish(
     throw new TemplateError("UPLOAD_TOKEN_INVALID", 403);
   if (!["ready", "committed"].includes(s.state))
     throw new TemplateError("RESOURCE_NOT_READY", 503, "Finish uploading the template first.", true);
-  if (
-    referenceID(input.coverImageURL, sid) !== s.cover_asset_id ||
-    referenceID(input.jsonDownloadURL, sid) !== s.payload_asset_id
-  )
+  const coverMatches =
+    input.coverImageURL === referenceURL(sid, s.cover_asset_id) ||
+    (s.visibility === "public" && matchesCoverReference(input.coverImageURL, s, await getAsset(s.cover_asset_id)));
+  if (!coverMatches || referenceID(input.jsonDownloadURL, sid) !== s.payload_asset_id)
     throw new TemplateError("RESOURCE_INVALID", 422);
   // SQL performs atomic idempotency + asset binding + first publication time.
   return publishTransaction(sid, token, input, contract, legacyExpiry);

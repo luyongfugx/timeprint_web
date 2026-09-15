@@ -10,7 +10,7 @@ import { actorHash, canonical, equalSecret, sha256 } from "./crypto";
 import { TemplateError } from "./errors";
 import { mapImages, parsePayload, payloadBytes } from "./payload";
 import { rows, write, rateLimit, registerAssetRecord, completeSessionRecord, parseJSON } from "./repository";
-import { downloadObject, signedUpload, uploadObject } from "./storage";
+import { cosObjectReference, downloadObject, signedUpload, uploadObject } from "./storage";
 
 export { downloadObject } from "./storage";
 
@@ -95,6 +95,15 @@ export function referenceID(url: string, sid: string) {
   if (!z.string().uuid().safeParse(id).success) throw new TemplateError("RESOURCE_INVALID", 422);
   return id;
 }
+// Match only the exact registered object in the authenticated session, never fetch client URLs.
+export function matchesCoverReference(url: string, s: Session, asset: Asset) {
+  return (
+    asset.upload_session_id === s.id &&
+    asset.kind === "cover" &&
+    (url === referenceURL(s.id, asset.id) ||
+      (s.visibility === "public" && url === cosObjectReference(asset.object_key)))
+  );
+}
 export async function registerAsset(s: Session, token: string, input: z.infer<typeof registerAssetSchema>) {
   const asset = await registerAssetRecord(s.id, sha256(token), {
     ...input,
@@ -164,7 +173,8 @@ export async function completeSession(
     if (
       payload.coverUrl != null &&
       payload.coverUrl !== "" &&
-      (typeof payload.coverUrl !== "string" || referenceID(payload.coverUrl, s.id) !== coverID)
+      (typeof payload.coverUrl !== "string" ||
+        !matchesCoverReference(payload.coverUrl, s, assets.find((a) => a.id === coverID)!))
     )
       throw new TemplateError("RESOURCE_INVALID", 422);
     payload.coverUrl = referenceURL(s.id, coverID!);

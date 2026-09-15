@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { createRequire } from "node:module";
 import { test } from "node:test";
 
-import type { Session } from "../../src/lib/templates/asset-service";
+import type { Asset, Session } from "../../src/lib/templates/asset-service";
 import type { CreateInput } from "../../src/lib/templates/contracts";
 import { actorHash } from "../../src/lib/templates/crypto";
 
@@ -12,6 +12,11 @@ const requireModule = createRequire(import.meta.url);
 test("legacy and v2 publishing header compatibility", async (t) => {
   const savedEnv = { ...process.env };
   Object.assign(process.env, {
+    TEMPLATE_COS_BUCKET: "fixture-1234567890",
+    TEMPLATE_COS_REGION: "ap-singapore",
+    TEMPLATE_COS_PREFIX: "template-assets-v2",
+    TEMPLATE_COS_SECRET_ID: "fixture-id",
+    TEMPLATE_COS_SECRET_KEY: "fixture-key",
     TEMPLATE_PUBLIC_ENABLED: "true",
     TEMPLATE_PRIVATE_ENABLED: "true",
     TEMPLATE_ACTOR_HMAC_KEY: "test-only-publish-hmac-secret-32-characters",
@@ -40,6 +45,8 @@ test("legacy and v2 publishing header compatibility", async (t) => {
   let snapshots: CreateInput[] = [];
   let commits: { input: CreateInput; contract: number; expiry: number }[] = [];
   const assets = replaceModule("../../src/lib/templates/asset-service", {
+    getAsset: async (id: string) =>
+      ({ id, upload_session_id: sid, kind: "cover", object_key: `staging/${sid}/cover` }) as Asset,
     session: async (id: string, secret: string) => {
       assert.equal(id, sid);
       assert.equal(secret, token);
@@ -52,6 +59,7 @@ test("legacy and v2 publishing header compatibility", async (t) => {
     legacySnapshot: async (input: CreateInput) => {
       snapshots.push(input);
       ready = {
+        id: sid,
         actor_hash: actorHash(input.userID),
         client_request_id: input.clientRequestID,
         visibility: input.visibility,
@@ -167,5 +175,28 @@ test("legacy and v2 publishing header compatibility", async (t) => {
     assert.equal(snapshots.length, 0);
     assert.equal(commits.length, 1);
     assert.equal(commits[0].contract, 2);
+  });
+  await t.test("COS cover address publishes only for its own public upload session", async () => {
+    const url = `https://fixture-1234567890.cos.ap-singapore.myqcloud.com/template-assets-v2/staging/${sid}/cover`;
+    const req = request({
+      "Idempotency-Key": input.clientRequestID,
+      "X-Template-Upload-Session": sid,
+      "X-Template-Upload-Token": token,
+    });
+    await publish(req, { ...input, coverImageURL: url, jsonDownloadURL });
+    assert.equal(commits.at(-1)!.input.coverImageURL, url);
+    for (const invalid of [
+      url + "?q-signature=temporary",
+      url.replace(sid, randomUUID()),
+      url.replace("fixture-1234567890", "other-1234567890"),
+    ]) {
+      await assert.rejects(publish(req, { ...input, coverImageURL: invalid, jsonDownloadURL }), {
+        code: "RESOURCE_INVALID",
+      });
+    }
+    ready.visibility = "private";
+    await assert.rejects(publish(req, { ...input, visibility: "private", coverImageURL: url, jsonDownloadURL }), {
+      code: "RESOURCE_INVALID",
+    });
   });
 });
