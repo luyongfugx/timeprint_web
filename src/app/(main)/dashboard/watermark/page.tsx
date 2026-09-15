@@ -35,7 +35,8 @@ type Row = {
   resolution?: string;
 };
 type Tab = "templates" | "reports" | "requests" | "trending";
-const tabLabels = { templates: "分享水印", trending: "热门搜索词", reports: "举报审核", requests: "联系与需求" };
+// Temporarily hide the requests entry from the dashboard navigation.
+const tabLabels = { templates: "分享水印", trending: "热门搜索词", reports: "举报审核" };
 function Expiry({ row }: { row: Row }) {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
@@ -434,7 +435,7 @@ export default function Page() {
         <p className="text-muted-foreground mt-2 text-sm">管理公开分享、私密码分享、举报与公司模板需求。</p>
       </header>
       <nav className="flex flex-wrap gap-2" aria-label="管理分类">
-        {(Object.keys(tabLabels) as Tab[]).map((t) => (
+        {(Object.keys(tabLabels) as (keyof typeof tabLabels)[]).map((t) => (
           <button
             key={t}
             className={`${button} ${t === tab ? "bg-blue-600 text-white" : ""}`}
