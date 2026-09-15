@@ -8,6 +8,7 @@ import { apiBase } from "./config";
 import { registerAssetSchema } from "./contracts";
 import { actorHash, canonical, equalSecret, sha256 } from "./crypto";
 import { TemplateError } from "./errors";
+import { mapAssetBatches } from "./parallel-assets";
 import { mapImages, parsePayload, payloadBytes } from "./payload";
 import { rows, write, rateLimit, registerAssetRecord, completeSessionRecord, parseJSON } from "./repository";
 import { cosObjectReference, downloadObject, signedUpload, uploadObject } from "./storage";
@@ -159,14 +160,13 @@ export async function completeSession(
       throw new TemplateError("RESOURCE_INVALID", 422);
   } else if (!attachmentIDs || canonical(assets.map((a) => a.id).sort()) !== canonical([...attachmentIDs].sort()))
     throw new TemplateError("RESOURCE_INVALID", 422);
-  const sealed = [];
-  for (const asset of assets) {
+  await mapAssetBatches(assets, async (asset) => {
     const bytes = await downloadObject(asset.object_key, Number(asset.bytes));
     if (bytes.length !== Number(asset.bytes) || sha256(bytes) !== asset.sha256)
       throw new TemplateError("RESOURCE_INVALID", 422, "Uploaded bytes do not match the registered resource.");
     contents.set(asset.id, bytes);
     if (asset.kind !== "payload") Object.assign(asset, await imageMetadata(bytes, asset.mime));
-  }
+  });
   let semanticPayloadHash = "";
   if (payloadID) {
     const payload = parsePayload(contents.get(payloadID)!, s.visibility);
@@ -193,18 +193,18 @@ export async function completeSession(
     });
     semanticPayloadHash = sha256(payloadBytes(semantic));
   }
-  for (const asset of assets) {
+  const sealed = await mapAssetBatches(assets, async (asset) => {
     const bytes = contents.get(asset.id)!;
     const key = `sealed/${s.id}/${randomUUID()}`;
     await uploadObject(key, bytes, asset.mime);
-    sealed.push({
+    return {
       id: asset.id,
       sealedKey: key,
       sealedSHA256: sha256(bytes),
       width: asset.width,
       height: asset.height,
-    });
-  }
+    };
+  });
   const cover = assets.find((a) => a.id === coverID);
   const receipt =
     s.purpose === "template"

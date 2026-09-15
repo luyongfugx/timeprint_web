@@ -44,3 +44,11 @@ export function cosObjectReference(key: string) {
   const { Bucket, Region } = cosConfig();
   return `https://${Bucket}.cos.${Region}.myqcloud.com/${objectKey(key)}`;
 }
+
+/** Same immutable client bytes may be PUT again after an ambiguous network failure. */
+export async function signedDeferredUpload(key: string, mime: string) {
+  const expires = 3600;
+  const uploadHeaders = { "Content-Type": mime, "x-cos-acl": "private" };
+  const uploadURL = await signedObjectURL(key, "PUT", uploadHeaders, expires);
+  return { uploadURL, uploadHeaders, uploadExpiresAt: new Date(Date.now() + expires * 1000).toISOString() };
+}

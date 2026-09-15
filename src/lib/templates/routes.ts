@@ -28,6 +28,7 @@ import {
   PRIVATE_EXPIRY_SECONDS,
 } from "./contracts";
 import { actorHash, sha256 } from "./crypto";
+import { createDeferredPlan, deferredPlanSchema, refreshDeferredTicket } from "./deferred-upload";
 import { TemplateError } from "./errors";
 import { body, boundedBytes, endpoint, json } from "./http";
 import { publish } from "./publish-service";
@@ -66,6 +67,16 @@ export async function v2Route(req: Request, path: string[]) {
       });
     }
     await requestLimit(req, "api");
+    if (req.method === "POST" && path.join("/") === "upload-plans") {
+      const input = await body(req, deferredPlanSchema);
+      flag(input.visibility === "public" ? "PUBLIC" : "PRIVATE");
+      return json(await createDeferredPlan(input));
+    }
+    if (req.method === "POST" && path.length === 4 && path[0] === "upload-plans" && path[2] === "assets") {
+      if (!uuid.safeParse(path[1]).success || !uuid.safeParse(path[3]).success)
+        throw new TemplateError("INVALID_REQUEST");
+      return json(await refreshDeferredTicket(path[1], req.headers.get("X-Template-Upload-Token") ?? "", path[3]));
+    }
     if (req.method === "POST" && path.join("/") === "templates") {
       const result = await publish(req, await body(req, createSchema));
       return json(result.receipt, result.replay ? 200 : 201);

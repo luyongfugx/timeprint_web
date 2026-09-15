@@ -5,6 +5,7 @@ import { type CreateInput } from "./contracts";
 import { actorHash } from "./crypto";
 import { TemplateError } from "./errors";
 import { isAssetReference, legacySnapshot } from "./legacy-assets";
+import { cosObjectReference } from "./storage";
 import { publishTransaction } from "./transactions";
 
 export type PublishResult = {
@@ -45,11 +46,23 @@ export async function publish(
     throw new TemplateError("UPLOAD_TOKEN_INVALID", 403);
   if (!["ready", "committed"].includes(s.state))
     throw new TemplateError("RESOURCE_NOT_READY", 503, "Finish uploading the template first.", true);
-  const coverMatches =
-    input.coverImageURL === referenceURL(sid, s.cover_asset_id) ||
-    (s.visibility === "public" && matchesCoverReference(input.coverImageURL, s, await getAsset(s.cover_asset_id)));
-  if (!coverMatches || referenceID(input.jsonDownloadURL, sid) !== s.payload_asset_id)
-    throw new TemplateError("RESOURCE_INVALID", 422);
+  if (s.completion_json?.uploadMode === "deferred") {
+    const cover = await getAsset(s.cover_asset_id),
+      payload = await getAsset(s.payload_asset_id);
+    if (
+      cover.upload_session_id !== sid ||
+      payload.upload_session_id !== sid ||
+      input.coverImageURL !== cosObjectReference(cover.object_key) ||
+      input.jsonDownloadURL !== cosObjectReference(payload.object_key)
+    )
+      throw new TemplateError("RESOURCE_INVALID", 422);
+  } else {
+    const coverMatches =
+      input.coverImageURL === referenceURL(sid, s.cover_asset_id) ||
+      (s.visibility === "public" && matchesCoverReference(input.coverImageURL, s, await getAsset(s.cover_asset_id)));
+    if (!coverMatches || referenceID(input.jsonDownloadURL, sid) !== s.payload_asset_id)
+      throw new TemplateError("RESOURCE_INVALID", 422);
+  }
   // SQL performs atomic idempotency + asset binding + first publication time.
   return publishTransaction(sid, token, input, contract, legacyExpiry);
 }
