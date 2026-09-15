@@ -76,9 +76,10 @@ export async function fetchLegacy(value: string, kind: "cover" | "payload" | "lo
     max = kind === "payload" ? MAX_PAYLOAD_BYTES : MAX_IMAGE_BYTES,
     host = u.hostname;
   let addresses = await resolve4(u.hostname);
-  // Some development VPNs return fake-IP DNS answers. Resolve those over HTTPS,
-  // then apply the same public-address checks and pin the actual connection below.
-  if (addresses.length && addresses.every((a) => /^198\.(18|19)\./.test(a))) {
+  // VPNs and hosted DNS can return fake-IP or link-local answers for public hosts.
+  // Resolve those over HTTPS; never connect to the original non-public address.
+  // The fallback answers must still pass public-address checks before being pinned.
+  if (addresses.length && addresses.every((a) => /^(?:198\.(?:18|19)|169\.254)\./.test(a))) {
     const response = await fetch(`https://dns.google/resolve?name=${encodeURIComponent(u.hostname)}&type=A`, {
       signal: AbortSignal.timeout(5000),
       redirect: "error",

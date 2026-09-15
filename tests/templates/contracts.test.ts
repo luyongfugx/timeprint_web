@@ -1,5 +1,10 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
+import dns from "node:dns/promises";
+import { EventEmitter } from "node:events";
+import type { IncomingMessage } from "node:http";
+import https from "node:https";
+import { Readable } from "node:stream";
 import { test } from "node:test";
 
 import { normalizeCode, checkReadable } from "../../src/lib/templates/access-policy";
@@ -8,7 +13,7 @@ import clientLocales from "../../src/lib/templates/client-locales.json";
 import { createSchema, searchSchema, reportSchema, type TemplateRow } from "../../src/lib/templates/contracts";
 import { canonical, shareCode } from "../../src/lib/templates/crypto";
 import { boundedBytes, body } from "../../src/lib/templates/http";
-import { publicIPv4, legacyURL } from "../../src/lib/templates/legacy-assets";
+import { publicIPv4, legacyURL, fetchLegacy } from "../../src/lib/templates/legacy-assets";
 import { parsePayload, mapImages, payloadBytes } from "../../src/lib/templates/payload";
 import { reportReasonLabel } from "../../src/lib/templates/report-reasons";
 import { queryCode, cursorEncode, cursorDecode } from "../../src/lib/templates/search-service";
@@ -18,6 +23,91 @@ import examples from "./fixtures/contract-examples.json";
 
 process.env.TEMPLATE_CURSOR_SIGNING_KEY = "test-only-cursor-secret-32-characters";
 const fixture = examples.examples;
+test("legacy downloads re-resolve link-local and VPN DNS answers, pinning only public IPs", async (t) => {
+  const host = "wm-1330977225.cos.ap-singapore.myqcloud.com";
+  const previousHosts = process.env.TEMPLATE_ALLOWED_LEGACY_ASSET_HOSTS;
+  process.env.TEMPLATE_ALLOWED_LEGACY_ASSET_HOSTS = host;
+  t.after(() => {
+    if (previousHosts === undefined) delete process.env.TEMPLATE_ALLOWED_LEGACY_ASSET_HOSTS;
+    else process.env.TEMPLATE_ALLOWED_LEGACY_ASSET_HOSTS = previousHosts;
+  });
+  const url = `https://${host}/android/ugc_cover/20260915_x2nO_1080_464.jpg`;
+  const bytes = Buffer.from("fixture image bytes");
+  const publicIP = "8.8.8.8";
+  let dnsAnswers = ["169.254.0.47"];
+  let fallbackAnswers = [publicIP];
+  let fallbackStatus = 0;
+  let fallbackHTTPStatus = 200;
+  const resolver = t.mock.method(dns, "resolve4", async () => dnsAnswers);
+  const fallback = t.mock.method(globalThis, "fetch", async (value: string, init: RequestInit) => {
+    assert.equal(value, `https://dns.google/resolve?name=${host}&type=A`);
+    assert.equal(init.redirect, "error");
+    return Response.json(
+      { Status: fallbackStatus, Answer: fallbackAnswers.map((data) => ({ type: 1, data })) },
+      { status: fallbackHTTPStatus },
+    );
+  });
+  const download = t.mock.method(
+    https,
+    "request",
+    (value: URL, options: https.RequestOptions, callback: (res: IncomingMessage) => void) => {
+      assert.equal(value.href, url);
+      assert.equal(options.family, 4);
+      const lookup = options.lookup as (
+        host: string,
+        options: unknown,
+        cb: (error: Error | null, address: string, family: number) => void,
+      ) => void;
+      lookup(host, {}, (error, address, family) => {
+        assert.equal(error, null);
+        assert.equal(address, publicIP);
+        assert.equal(family, 4);
+      });
+      return Object.assign(new EventEmitter(), {
+        end() {
+          const res = Object.assign(Readable.from([bytes]), { statusCode: 200 });
+          callback(res as IncomingMessage);
+        },
+      });
+    },
+  );
+  for (const address of ["169.254.0.47", "198.18.0.1", "198.19.0.1"]) {
+    dnsAnswers = [address];
+    assert.deepEqual(await fetchLegacy(url, "cover"), bytes);
+  }
+  assert.equal(fallback.mock.callCount(), 3);
+  dnsAnswers = [publicIP];
+  assert.deepEqual(await fetchLegacy(url, "cover"), bytes);
+  assert.equal(fallback.mock.callCount(), 3);
+  assert.equal(download.mock.callCount(), 4);
+
+  t.mock.method(console, "error", () => {});
+  dnsAnswers = ["169.254.0.47"];
+  for (const answers of [[], ["169.254.0.47"], ["127.0.0.1"], [publicIP, "10.0.0.1"]]) {
+    fallbackAnswers = answers;
+    await assert.rejects(fetchLegacy(url, "cover"), { code: "RESOURCE_INVALID" });
+  }
+  fallbackAnswers = [publicIP];
+  fallbackStatus = 3;
+  await assert.rejects(fetchLegacy(url, "cover"), { code: "RESOURCE_INVALID" });
+  fallbackStatus = 0;
+  fallbackHTTPStatus = 503;
+  await assert.rejects(fetchLegacy(url, "cover"), { code: "RESOURCE_INVALID" });
+  fallbackHTTPStatus = 200;
+  const fallbackCalls = fallback.mock.callCount();
+  for (const answers of [["10.0.0.1"], [publicIP, "169.254.0.47"]]) {
+    dnsAnswers = answers;
+    await assert.rejects(fetchLegacy(url, "cover"), { code: "RESOURCE_INVALID" });
+  }
+  assert.equal(fallback.mock.callCount(), fallbackCalls);
+  assert.equal(download.mock.callCount(), 4);
+  const resolverCalls = resolver.mock.callCount();
+  await assert.rejects(fetchLegacy("https://other.example/android/ugc_cover/cover.jpg", "cover"), {
+    code: "RESOURCE_INVALID",
+  });
+  assert.equal(resolver.mock.callCount(), resolverCalls);
+});
+
 test("report reasons use the iOS Chinese wording", () => {
   assert.equal(reportReasonLabel("intellectual_property"), "侵犯知识产权");
   assert.equal(reportReasonLabel("fraud_deceptive"), "欺诈或误导行为");
