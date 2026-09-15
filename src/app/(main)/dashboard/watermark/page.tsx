@@ -484,7 +484,6 @@ export default function Page() {
             <option value="">全部范围</option>
             <option value="public">公开</option>
             <option value="private">私密</option>
-            <option value="legacy">旧版分享</option>
           </select>
           <button className={button} disabled={busy}>
             搜索
