@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 
 import { X } from "lucide-react";
 
@@ -8,10 +8,51 @@ import { trendingRegions } from "@/lib/templates/trending-regions";
 
 import { RegionPicker } from "./region-picker";
 
+const regionsStorageKey = "timeprint.admin.trending.regions.v1";
+const validRegionCodes = new Set(trendingRegions.map((region) => region.code));
+
+const subscribeToHydration = () => () => {};
+
+function readSavedRegions(): string[] {
+  try {
+    const saved = localStorage.getItem(regionsStorageKey);
+    if (saved !== null) {
+      const parsed: unknown = JSON.parse(saved);
+      if (Array.isArray(parsed)) {
+        const restored = [
+          ...new Set(parsed.filter((code): code is string => typeof code === "string" && validRegionCodes.has(code))),
+        ].slice(-8);
+        if (parsed.length === 0 || restored.length > 0) return restored;
+      }
+    }
+  } catch {
+    // Invalid or unavailable storage falls back to the default selection.
+  }
+  return ["CN"];
+}
+
 export function TrendingEditors() {
-  const [regions, setRegions] = useState(["CN"]);
+  const hydrated = useSyncExternalStore(
+    subscribeToHydration,
+    () => true,
+    () => false,
+  );
+  return hydrated ? <SavedTrendingEditors /> : null;
+}
+
+function SavedTrendingEditors() {
+  const [regions, setRegions] = useState(readSavedRegions);
   // Keep drafts when the oldest selection is displaced or a country is temporarily deselected.
   const [drafts, setDrafts] = useState<Partial<Record<string, string>>>({});
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(regionsStorageKey, JSON.stringify(regions));
+    } catch {
+      // Selection remains usable when the browser blocks local storage.
+    }
+  }, [regions]);
+
   return (
     <section className="space-y-4" aria-label="国家／地区热门搜索词">
       <div className="flex flex-wrap items-center gap-3">
