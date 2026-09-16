@@ -27,7 +27,7 @@
 
 原 `src/app/(main)/dashboard/watermark/language-picker.tsx` 已由 `region-picker.tsx` 替代。没有新增数据库表或修改 Prisma schema；国家配置复用 `template_trending_terms.locale` 字段，以 `region:CN` 等值区分旧语言配置。
 
-另同步修改 GPS 客户端 `iOSTimeGPS/UI/Watermark/Catalog/TimeprintCatalogExploreViewController.swift`：本地热词、接口结果及缓存不再截取前 8 个，热门词布局不再限制两行。
+另同步修改 GPS 客户端 `iOSTimeGPS/UI/Watermark/Catalog/TimeprintCatalogExploreViewController.swift`：本地和接口词库完整保留，缓存保存全部词；展示时从去重后的完整词库随机抽取最多 8 个，最多显示两行。同一页面词库未变化时保持抽样结果稳定，重新进入页面重新抽样。
 
 ## 全部国家／地区关键词
 
@@ -302,3 +302,5 @@
 ## 数据溯源
 
 每个地区的具体源文件路径见 `src/lib/templates/trending-regions.json` 中的 `source` 字段；路径相对于 `gps_map_camera` 项目根目录。
+
+客户端容错：请求失败、返回格式无效、返回空热词或仅空白词时，保留上次成功获取的完整词库和当前抽样结果，不清空持久化缓存。重新进入页面时可从上次缓存词库抽样；只有从未获取过有效词库时才使用本地词库。

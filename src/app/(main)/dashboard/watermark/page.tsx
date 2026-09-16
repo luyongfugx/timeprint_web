@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { reportReasonLabel } from "@/lib/templates/report-reasons";
 
 import { AssetPreview } from "./asset-preview";
-import { RegionPicker } from "./region-picker";
+import { TrendingEditors } from "./trending-editors";
 
 type Row = {
   id: string;
@@ -166,9 +166,7 @@ export default function Page() {
   const [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
     [note, setNote] = useState(""),
-    [revision, setRevision] = useState(0),
-    [region, setRegion] = useState("CN"),
-    [terms, setTerms] = useState("");
+    [revision, setRevision] = useState(0);
   const [selected, setSelected] = useState<{ row: Row; kind: "edit" | "remove" | "restore" | "delete" } | null>(null);
   const [editName, setEditName] = useState("");
   const [editCompany, setEditCompany] = useState("");
@@ -265,16 +263,14 @@ export default function Page() {
     return result;
   };
   useEffect(() => {
+    if (tab === "trending") return;
     const controller = new AbortController();
     // Reset the prior query while synchronizing this view with the remote list.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setBusy(true);
     setError("");
     setRows([]);
-    const params =
-      tab === "trending"
-        ? new URLSearchParams({ region })
-        : new URLSearchParams({ page: String(page), pageSize: String(pageSize), query: submittedQuery });
+    const params = new URLSearchParams({ page: String(page), pageSize: String(pageSize), query: submittedQuery });
     if (filter && tab === "templates") params.set("visibility", filter);
     fetch(`/api/admin/templates${tab === "templates" ? "" : `/${tab}`}?${params}`, {
       cache: "no-store",
@@ -284,19 +280,10 @@ export default function Page() {
         const result = await res.json();
         if (!res.ok) throw new Error(result.error?.message ?? "加载失败");
         if (controller.signal.aborted) return;
-        if (tab === "trending")
-          setTerms(
-            result.terms
-              .filter((t: { enabled: boolean }) => t.enabled)
-              .map((t: { term: string }) => t.term)
-              .join("\n"),
-          );
-        else {
-          setRows(result.results);
-          setTotal(result.total);
-          const lastPage = Math.min(10000, Math.max(1, Math.ceil(result.total / pageSize)));
-          if (page > lastPage) setPage(lastPage);
-        }
+        setRows(result.results);
+        setTotal(result.total);
+        const lastPage = Math.min(10000, Math.max(1, Math.ceil(result.total / pageSize)));
+        if (page > lastPage) setPage(lastPage);
       })
       .catch((e) => {
         if (!controller.signal.aborted) setError(e.message);
@@ -305,20 +292,7 @@ export default function Page() {
         if (!controller.signal.aborted) setBusy(false);
       });
     return () => controller.abort();
-  }, [tab, page, pageSize, submittedQuery, filter, revision, region]);
-  async function action(path: string, method: string, data: unknown) {
-    setBusy(true);
-    setError("");
-    try {
-      await api(path, method, data);
-      setRevision((v) => v + 1);
-      setNote("");
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "操作失败");
-    } finally {
-      setBusy(false);
-    }
-  }
+  }, [tab, page, pageSize, submittedQuery, filter, revision]);
   const totalPages = Math.min(10000, Math.max(1, Math.ceil(total / pageSize)));
   const button = "rounded-lg border px-3 py-2 text-sm disabled:opacity-40";
   return (
@@ -550,36 +524,7 @@ export default function Page() {
         </form>
       )}
       {tab === "trending" ? (
-        <section className="max-w-lg space-y-4">
-          <div className="flex items-center gap-3">
-            <span className="text-sm font-medium">国家／地区</span>
-            <RegionPicker value={region} onChange={setRegion} />
-          </div>
-          <label className="block">
-            搜索词（每行一个，不限数量）
-            <textarea
-              rows={8}
-              className="mt-2 w-full rounded-xl border bg-transparent p-3"
-              value={terms}
-              onChange={(e) => setTerms(e.target.value)}
-            />
-          </label>
-          <button
-            className={button}
-            disabled={busy}
-            onClick={() =>
-              action(`/trending?region=${encodeURIComponent(region)}`, "PUT", {
-                terms: terms
-                  .split("\n")
-                  .map((t) => t.trim())
-                  .filter(Boolean)
-                  .map((term) => ({ term, enabled: true })),
-              })
-            }
-          >
-            保存搜索词
-          </button>
-        </section>
+        <TrendingEditors />
       ) : busy ? (
         <p role="status">加载中…</p>
       ) : rows.length === 0 ? (

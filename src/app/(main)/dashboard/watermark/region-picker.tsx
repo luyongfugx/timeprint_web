@@ -14,12 +14,11 @@ const groups = [
   },
 ];
 
-export function RegionPicker({ value, onChange }: { value: string; onChange: (locale: string) => void }) {
+export function RegionPicker({ value, onChange }: { value: string[]; onChange: (regions: string[]) => void }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const all = groups.flatMap((group) => group.languages);
-  const selectedCode = value;
-  const selected = all.find(([code]) => code === selectedCode);
+  const selectedNames = value.map((code) => all.find(([item]) => item === code)?.[1] ?? code);
   const search = query.trim().toLowerCase();
   const filtered = groups
     .map((group) => ({
@@ -30,8 +29,7 @@ export function RegionPicker({ value, onChange }: { value: string; onChange: (lo
     }))
     .filter((group) => group.languages.length);
   function select(code: string) {
-    onChange(code);
-    setOpen(false);
+    onChange(value.includes(code) ? value.filter((item) => item !== code) : [...value, code].slice(-8));
   }
   return (
     <Popover
@@ -45,11 +43,11 @@ export function RegionPicker({ value, onChange }: { value: string; onChange: (lo
         <button
           type="button"
           className="bg-background hover:bg-accent inline-flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm shadow-sm"
-          aria-label={`选择国家／地区：${selected?.[1] ?? value}`}
+          aria-label={`选择国家／地区：${selectedNames.join("、") || "未选择"}`}
         >
           <Globe className="size-4" aria-hidden="true" />
-          {selected?.[1] ?? value}
-          <span className="text-muted-foreground text-xs">{selectedCode}</span>
+          选择国家／地区
+          <span className="text-muted-foreground text-xs">{value.length}/8</span>
           <ChevronDown className="text-muted-foreground size-4" aria-hidden="true" />
         </button>
       </PopoverTrigger>
@@ -60,6 +58,9 @@ export function RegionPicker({ value, onChange }: { value: string; onChange: (lo
         className="flex max-h-[min(75vh,var(--radix-popover-content-available-height))] w-[min(1100px,calc(100vw-2rem))] flex-col gap-4 overflow-hidden rounded-2xl border p-4 shadow-xl"
         aria-label="选择热门搜索词国家／地区"
       >
+        <p className="text-muted-foreground text-sm">
+          最多选择 8 个；继续选择会移除最早选中的国家／地区。再次点击可取消选择。
+        </p>
         <div className="relative shrink-0">
           <Search className="text-muted-foreground absolute top-3 left-3 size-5" aria-hidden="true" />
           <input
@@ -81,15 +82,15 @@ export function RegionPicker({ value, onChange }: { value: string; onChange: (lo
                   <button
                     key={code}
                     type="button"
-                    aria-pressed={selectedCode === code}
+                    aria-pressed={value.includes(code)}
                     title={`${name} (${code})`}
                     onClick={() => select(code)}
-                    className={`hover:bg-accent focus-visible:ring-ring flex min-w-0 items-center gap-2 rounded-lg px-3 py-3 text-left text-sm focus-visible:ring-2 focus-visible:outline-none ${selectedCode === code ? "bg-accent font-semibold" : ""}`}
+                    className={`hover:bg-accent focus-visible:ring-ring flex min-w-0 items-center gap-2 rounded-lg px-3 py-3 text-left text-sm focus-visible:ring-2 focus-visible:outline-none ${value.includes(code) ? "bg-accent font-semibold" : ""}`}
                   >
                     <span className="min-w-0 flex-1 truncate" dir="auto">
                       {name}
                     </span>
-                    {selectedCode === code && <Check className="size-4 shrink-0 text-orange-600" aria-hidden="true" />}
+                    {value.includes(code) && <Check className="size-4 shrink-0 text-orange-600" aria-hidden="true" />}
                   </button>
                 ))}
               </div>
