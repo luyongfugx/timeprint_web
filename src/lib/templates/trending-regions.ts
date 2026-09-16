@@ -15,3 +15,8 @@ export function trendingRegionForLocale(locale: string): string {
     return "US";
   }
 }
+
+// Empty regional lists fall directly back to the English (US) country list.
+export function trendingRegionCandidates(locale: string, region?: string): string[] {
+  return [...new Set([`region:${region ?? trendingRegionForLocale(locale)}`.toLowerCase(), "region:us", "en"])];
+}

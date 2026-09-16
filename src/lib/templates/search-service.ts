@@ -9,8 +9,7 @@ import { listSchema, searchSchema, type TemplateRow } from "./contracts";
 import { canonical, equalSecret, sha256 } from "./crypto";
 import { TemplateError } from "./errors";
 import { rows, write, parseJSON } from "./repository";
-import { trendingLocaleCandidates } from "./trending-locales";
-import { trendingRegionForLocale } from "./trending-regions";
+import { trendingRegionCandidates } from "./trending-regions";
 
 export function queryCode(query: string, mode: string): string | null {
   if (mode === "keyword") return null;
@@ -151,10 +150,7 @@ export async function search(input: z.infer<typeof searchSchema>) {
   };
 }
 export async function trendingTerms(locale: string, region?: string) {
-  for (const candidate of [
-    `region:${region ?? trendingRegionForLocale(locale)}`.toLowerCase(),
-    ...trendingLocaleCandidates(locale),
-  ]) {
+  for (const candidate of trendingRegionCandidates(locale, region)) {
     const terms = await rows<{ term: string }>(
       "SELECT term FROM template_trending_terms WHERE LOWER(locale)=? AND enabled=true ORDER BY sort_order,id",
       [candidate],

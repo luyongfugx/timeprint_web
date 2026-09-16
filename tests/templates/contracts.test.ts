@@ -320,3 +320,12 @@ test("country trending configuration distinguishes language and region codes", a
   assert.ok(trendingRegions.find((r) => r.code === "VN")!.terms.length > 8);
   assert.ok(trendingRegions.every((r) => new Set(r.terms).size === r.terms.length));
 });
+
+test("empty regional trending lists fall back directly to English", async () => {
+  const { trendingRegionCandidates, trendingRegions } = await import("../../src/lib/templates/trending-regions");
+  assert.deepEqual(trendingRegionCandidates("zh-Hans", "KH"), ["region:kh", "region:us", "en"]);
+  assert.deepEqual(trendingRegionCandidates("ar", "SA"), ["region:sa", "region:us", "en"]);
+  assert.deepEqual(trendingRegionCandidates("en-US"), ["region:us", "en"]);
+  const hk = trendingRegions.find((region) => region.code === "HK")!.terms;
+  for (const code of ["TW", "MO"]) assert.deepEqual(trendingRegions.find((region) => region.code === code)!.terms, hk);
+});

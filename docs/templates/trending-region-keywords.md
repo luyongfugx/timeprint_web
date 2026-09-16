@@ -2,7 +2,7 @@
 
 生成日期：2026-09-16。本文记录本次导入的数据快照，后续后台编辑不会自动更新本文。
 
-共 **257 个国家／地区**，其中 **254 个有关键词**，共 **3134 个关键词配置项**（不同地区可能使用相同词）。
+共 **257 个国家／地区**，其中 **255 个有关键词**，共 **3146 个关键词配置项**（不同地区可能使用相同词）。
 
 数据依据：`src/lib/templates/trending-regions.json`，来源为 `gps_map_camera` 中的地区目录。按源目录品牌名称顺序去重，保留全部词；当前客户端及部署目录优先于原始矩阵。表内顺序即配置顺序。源数据没有品牌词的地区标为“暂无关键词”。
 
@@ -269,7 +269,7 @@
 | TR | 土耳其 | tr | 12 | 1. Coca-Cola<br>2. Nestlé<br>3. Shell<br>4. KFC<br>5. 7-ELEVEn<br>6. Carrefour<br>7. PepsiCo<br>8. IKEA<br>9. Araç hizmetleri<br>10. G4S Güvenlik<br>11. J&amp;T Express<br>12. OPPO |
 | TT | 特立尼达和多巴哥 | en | 12 | 1. Vehicle services<br>2. J&amp;T Express<br>3. Coca-Cola<br>4. Nestlé<br>5. G4S Security<br>6. KFC<br>7. Shell<br>8. IKEA<br>9. Carrefour<br>10. OPPO<br>11. PepsiCo<br>12. 7-ELEVEn |
 | TV | 图瓦卢 | en | 12 | 1. Vehicle services<br>2. J&amp;T Express<br>3. Coca-Cola<br>4. Nestlé<br>5. G4S Security<br>6. KFC<br>7. Shell<br>8. IKEA<br>9. Carrefour<br>10. OPPO<br>11. PepsiCo<br>12. 7-ELEVEn |
-| TW | 台湾 | zh-Hant | 0 | 暂无关键词 |
+| TW | 台湾 | zh-Hant | 12 | 1. 车辆服务<br>2. 极兔速运<br>3. 可口可乐<br>4. 雀巢<br>5. G4S Security<br>6. 肯德基<br>7. 壳牌<br>8. 宜家<br>9. 家乐福<br>10. OPPO<br>11. 百事可乐<br>12. 7-ELEVEn |
 | TZ | 坦桑尼亚 | sw | 12 | 1. J&amp;T Express<br>2. IKEA<br>3. 7-ELEVEn<br>4. Usalama wa G4S<br>5. Carrefour<br>6. Shell<br>7. PepsiCo<br>8. Coca-Cola<br>9. Nestlé<br>10. Huduma za gari<br>11. KFC<br>12. OPPO |
 | UA | 乌克兰 | en | 12 | 1. Vehicle services<br>2. J&amp;T Express<br>3. Coca-Cola<br>4. Nestlé<br>5. G4S Security<br>6. KFC<br>7. Shell<br>8. IKEA<br>9. Carrefour<br>10. OPPO<br>11. PepsiCo<br>12. 7-ELEVEn |
 | UG | 乌干达 | sw | 12 | 1. Huduma za gari<br>2. J&amp;T Express<br>3. Coca-Cola<br>4. Nestlé<br>5. Usalama wa G4S<br>6. KFC<br>7. Shell<br>8. IKEA<br>9. Carrefour<br>10. OPPO<br>11. PepsiCo<br>12. 7-ELEVEn |
@@ -297,10 +297,11 @@
 
 - 柬埔寨（KH）：源目录没有品牌词，未填入虚构关键词，可在后台补充。
 - 沙特阿拉伯（SA）：源目录没有品牌词，未填入虚构关键词，可在后台补充。
-- 台湾（TW）：源目录没有品牌词，未填入虚构关键词，可在后台补充。
 
 ## 数据溯源
 
 每个地区的具体源文件路径见 `src/lib/templates/trending-regions.json` 中的 `source` 字段；路径相对于 `gps_map_camera` 项目根目录。
 
 客户端容错：请求失败、返回格式无效、返回空热词或仅空白词时，保留上次成功获取的完整词库和当前抽样结果，不清空持久化缓存。重新进入页面时可从上次缓存词库抽样；只有从未获取过有效词库时才使用本地词库。
+
+台湾（TW）、澳门（MO）已复制香港（HK）的 12 个关键词，顺序和启用状态一致，之后仍可独立编辑。没有启用关键词的地区在客户端读取时回退英语（美国词库，必要时再查旧版 `en`）；后台仍展示该地区实际保存的配置。

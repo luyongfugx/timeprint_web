@@ -5004,9 +5004,22 @@
       "code": "TW",
       "name": "台湾",
       "search": "Taiwan",
-      "terms": [],
+      "terms": [
+        "车辆服务",
+        "极兔速运",
+        "可口可乐",
+        "雀巢",
+        "G4S Security",
+        "肯德基",
+        "壳牌",
+        "宜家",
+        "家乐福",
+        "OPPO",
+        "百事可乐",
+        "7-ELEVEn"
+      ],
       "language": "zh-Hant",
-      "source": "tools/watermark_catalog/sources/matrix/catalogs/f09e94403a03472a2f54ebeef7a388e2d9074641dca4267f509b473a476424a7.json.gz"
+      "source": "tools/watermark_catalog/sources/matrix/catalogs/ab72a51296440aa995c837a730450bb595053ab4a64c5070ced5d607b04fb0cc.json.gz"
     },
     {
       "code": "TZ",

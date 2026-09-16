@@ -77,6 +77,14 @@ const regions = coverage.countries.map((code) => {
     source: override?.source ?? source,
   };
 });
+// Taiwan and Macao start with an independent copy of the Hong Kong keyword list.
+const hongKong = regions.find((region) => region.code === "HK");
+if (!hongKong?.terms.length) throw new Error("Hong Kong keyword source is empty");
+for (const region of regions.filter((region) => ["TW", "MO"].includes(region.code))) {
+  region.terms = [...hongKong.terms];
+  region.language = hongKong.language;
+  region.source = hongKong.source;
+}
 const localeRegions = Object.fromEntries(
   [...overrides].map(([country, data]) => [data.language.toLowerCase(), country]),
 );
