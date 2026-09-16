@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { normalizeTrendingRegion } from "./trending-regions";
+
 export const PRIVATE_EXPIRY_SECONDS = 2_592_000;
 export const MAX_PAYLOAD_BYTES = 2 * 1024 * 1024;
 export const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
@@ -64,6 +66,11 @@ export const registerAssetSchema = z
 export const completeSchema = z.object({ coverAssetID: uuid, payloadAssetID: uuid }).strict();
 export const evidenceCompleteSchema = z.object({ attachmentIDs: z.array(uuid).min(1).max(3) }).strict();
 export const listSchema = z.object({
+  region: z
+    .string()
+    .transform((value) => value.toUpperCase())
+    .refine((value) => !!normalizeTrendingRegion(value))
+    .optional(),
   locale: z
     .string()
     .regex(/^[a-zA-Z0-9-]{2,35}$/)

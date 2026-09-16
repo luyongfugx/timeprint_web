@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { reportReasonLabel } from "@/lib/templates/report-reasons";
 
 import { AssetPreview } from "./asset-preview";
-import { LanguagePicker } from "./language-picker";
+import { RegionPicker } from "./region-picker";
 
 type Row = {
   id: string;
@@ -167,7 +167,7 @@ export default function Page() {
     [error, setError] = useState(""),
     [note, setNote] = useState(""),
     [revision, setRevision] = useState(0),
-    [locale, setLocale] = useState("en"),
+    [region, setRegion] = useState("CN"),
     [terms, setTerms] = useState("");
   const [selected, setSelected] = useState<{ row: Row; kind: "edit" | "remove" | "restore" | "delete" } | null>(null);
   const [editName, setEditName] = useState("");
@@ -273,7 +273,7 @@ export default function Page() {
     setRows([]);
     const params =
       tab === "trending"
-        ? new URLSearchParams({ locale })
+        ? new URLSearchParams({ region })
         : new URLSearchParams({ page: String(page), pageSize: String(pageSize), query: submittedQuery });
     if (filter && tab === "templates") params.set("visibility", filter);
     fetch(`/api/admin/templates${tab === "templates" ? "" : `/${tab}`}?${params}`, {
@@ -283,6 +283,7 @@ export default function Page() {
       .then(async (res) => {
         const result = await res.json();
         if (!res.ok) throw new Error(result.error?.message ?? "加载失败");
+        if (controller.signal.aborted) return;
         if (tab === "trending")
           setTerms(
             result.terms
@@ -291,7 +292,6 @@ export default function Page() {
               .join("\n"),
           );
         else {
-          if (controller.signal.aborted) return;
           setRows(result.results);
           setTotal(result.total);
           const lastPage = Math.min(10000, Math.max(1, Math.ceil(result.total / pageSize)));
@@ -305,7 +305,7 @@ export default function Page() {
         if (!controller.signal.aborted) setBusy(false);
       });
     return () => controller.abort();
-  }, [tab, page, pageSize, submittedQuery, filter, revision, locale]);
+  }, [tab, page, pageSize, submittedQuery, filter, revision, region]);
   async function action(path: string, method: string, data: unknown) {
     setBusy(true);
     setError("");
@@ -552,11 +552,11 @@ export default function Page() {
       {tab === "trending" ? (
         <section className="max-w-lg space-y-4">
           <div className="flex items-center gap-3">
-            <span className="text-sm font-medium">语言</span>
-            <LanguagePicker value={locale} onChange={setLocale} />
+            <span className="text-sm font-medium">国家／地区</span>
+            <RegionPicker value={region} onChange={setRegion} />
           </div>
           <label className="block">
-            搜索词（每行一个，最多 8 个）
+            搜索词（每行一个，不限数量）
             <textarea
               rows={8}
               className="mt-2 w-full rounded-xl border bg-transparent p-3"
@@ -568,7 +568,7 @@ export default function Page() {
             className={button}
             disabled={busy}
             onClick={() =>
-              action(`/trending?locale=${encodeURIComponent(locale)}`, "PUT", {
+              action(`/trending?region=${encodeURIComponent(region)}`, "PUT", {
                 terms: terms
                   .split("\n")
                   .map((t) => t.trim())

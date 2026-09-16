@@ -29,6 +29,7 @@ import {
   resolveRequest,
   attachLegacy,
 } from "./transactions";
+import { normalizeTrendingRegion } from "./trending-regions";
 
 export async function adminRoute(req: Request, path: string[]) {
   return endpoint(
@@ -259,37 +260,33 @@ export async function adminRoute(req: Request, path: string[]) {
         });
       }
       if (path.join("/") === "trending") {
-        const locale = z
-          .string()
-          .regex(/^[a-zA-Z0-9-]{2,35}$/)
-          .safeParse(q.get("locale") ?? "en");
-        if (!locale.success) throw new TemplateError("INVALID_REQUEST");
+        const region = normalizeTrendingRegion(q.get("region") ?? "");
+        if (!region) throw new TemplateError("INVALID_REQUEST");
+        const locale = `region:${region}`;
         if (req.method === "GET")
           return json({
             terms: await rows("SELECT term,enabled FROM template_trending_terms WHERE locale=? ORDER BY sort_order", [
-              locale.data,
+              locale,
             ]),
           });
         if (req.method === "PUT") {
           const input = await body(
             req,
-            z
-              .object({ terms: z.array(z.object({ term: text(100, 1), enabled: z.boolean() }).strict()).max(8) })
-              .strict(),
+            z.object({ terms: z.array(z.object({ term: text(100, 1), enabled: z.boolean() }).strict()) }).strict(),
           );
           if (new Set(input.terms.map((t) => t.term.toLowerCase())).size !== input.terms.length)
             throw new TemplateError("INVALID_REQUEST");
           await transaction(async (c) => {
-            await write("DELETE FROM template_trending_terms WHERE locale=?", [locale.data], c);
+            await write("DELETE FROM template_trending_terms WHERE locale=?", [locale], c);
             for (const [i, t] of input.terms.entries())
               await write(
                 "INSERT INTO template_trending_terms(id,term,locale,sort_order,enabled) VALUES (?,?,?,?,?)",
-                [randomUUID(), t.term, locale.data, i, t.enabled],
+                [randomUUID(), t.term, locale, i, t.enabled],
                 c,
               );
             await write(
               "INSERT INTO template_moderation_actions(id,admin_user_id,action,reason) VALUES (?,?,'trending',?)",
-              [randomUUID(), admin, locale.data],
+              [randomUUID(), admin, locale],
               c,
             );
           });

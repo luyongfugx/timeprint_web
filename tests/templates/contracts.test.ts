@@ -303,3 +303,20 @@ test("signed pagination is bound to query and offset; generated codes use the co
   assert.equal(searchSchema.safeParse({ ...fixture.searchRequest, limit: 51 }).success, false);
   assert.ok(reportSchema.safeParse(fixture.reportRequest).success);
 });
+
+test("country trending configuration distinguishes language and region codes", async () => {
+  const { normalizeTrendingRegion, trendingRegionForLocale, trendingRegions } = await import(
+    "../../src/lib/templates/trending-regions"
+  );
+  assert.equal(normalizeTrendingRegion("id"), "ID");
+  assert.equal(normalizeTrendingRegion("unknown"), undefined);
+  assert.equal(trendingRegionForLocale("en-AU"), "AU");
+  assert.equal(trendingRegionForLocale("zh-HK"), "HK");
+  assert.equal(trendingRegionForLocale("zh-Hans"), "CN");
+  assert.equal(trendingRegionForLocale("id"), "ID");
+  assert.equal(trendingRegionForLocale("en"), "US");
+  assert.equal(new Set(trendingRegions.map((r) => r.code)).size, trendingRegions.length);
+  assert.ok(trendingRegions.find((r) => r.code === "VN")!.terms.includes("Dịch vụ xe cộ"));
+  assert.ok(trendingRegions.find((r) => r.code === "VN")!.terms.length > 8);
+  assert.ok(trendingRegions.every((r) => new Set(r.terms).size === r.terms.length));
+});

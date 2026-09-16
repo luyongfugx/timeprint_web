@@ -10,6 +10,7 @@ import { canonical, equalSecret, sha256 } from "./crypto";
 import { TemplateError } from "./errors";
 import { rows, write, parseJSON } from "./repository";
 import { trendingLocaleCandidates } from "./trending-locales";
+import { trendingRegionForLocale } from "./trending-regions";
 
 export function queryCode(query: string, mode: string): string | null {
   if (mode === "keyword") return null;
@@ -149,10 +150,13 @@ export async function search(input: z.infer<typeof searchSchema>) {
     ...(page.refreshRequired ? { refreshRequired: true } : {}),
   };
 }
-export async function trendingTerms(locale: string) {
-  for (const candidate of trendingLocaleCandidates(locale)) {
+export async function trendingTerms(locale: string, region?: string) {
+  for (const candidate of [
+    `region:${region ?? trendingRegionForLocale(locale)}`.toLowerCase(),
+    ...trendingLocaleCandidates(locale),
+  ]) {
     const terms = await rows<{ term: string }>(
-      "SELECT term FROM template_trending_terms WHERE LOWER(locale)=? AND enabled=true ORDER BY sort_order,id LIMIT 8",
+      "SELECT term FROM template_trending_terms WHERE LOWER(locale)=? AND enabled=true ORDER BY sort_order,id",
       [candidate],
     );
     if (terms.length) return terms;
@@ -164,7 +168,7 @@ export async function discovery(input: z.infer<typeof listSchema>) {
     throw new TemplateError("SERVICE_UNAVAILABLE", 503, "Search is temporarily unavailable.", true);
   return {
     contractVersion: 2,
-    trending: await trendingTerms(input.locale),
+    trending: await trendingTerms(input.locale, input.region),
     popular: await publicPage(input),
     links: {
       removal: `${apiOrigin()}/templates/contact?kind=removal`,
