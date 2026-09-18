@@ -46,6 +46,7 @@ test("legacy GET returns unsigned COS resources without reading or migrating obj
     json_download_url: "https://wm.timeprint.net/api/applink/v2/assets/payload",
   } as TemplateRow;
   let mode = "deferred";
+  let resourceFormat: string | null = null;
   let missingPayload = false;
   const queries: string[] = [];
   replace("../../src/lib/templates/repository", {
@@ -63,6 +64,7 @@ test("legacy GET returns unsigned COS resources without reading or migrating obj
         kind,
         sealed_key: `sealed/session/${kind}`,
         upload_mode: mode,
+        resource_format: resourceFormat,
       }));
     },
   });
@@ -98,6 +100,11 @@ test("legacy GET returns unsigned COS resources without reading or migrating obj
   template = { ...template, visibility: "public" };
   mode = "snapshot";
   assert.match((await (await get()).json()).shareLink.json_download_url, /\/templates\/123\/payload/);
+  resourceFormat = "cos";
+  assert.equal(
+    (await (await get()).json()).shareLink.json_download_url,
+    `${host}/template-assets-v2/sealed/session/payload`,
+  );
 
   template = {
     ...template,

@@ -217,7 +217,10 @@ test(
     assert.equal(response.headers.get("X-Payload-SHA256"), sha256(bytes));
     const payload = JSON.parse(bytes);
     assert.deepEqual(payload.itemHistories, { "8": { content: [{ text: "private edit", isFavorite: false }] } });
-    assert.ok(payload.watermarkModel.items.at(-1).logoInfo.logoUrl.includes(receipt.shareCode));
+    assert.match(
+      payload.watermarkModel.items.at(-1).logoInfo.logoUrl,
+      /^https:\/\/[^/]+\.myqcloud\.com\/template-assets-v2\/sealed\//,
+    );
     await fetch(d.c.uploadURL, { method: "PUT", body: new Uint8Array(Buffer.from("mutated staging")) });
     assert.deepEqual(Buffer.from(await (await assetResponse(d.c.assetID, receipt.shareCode)).arrayBuffer()), d.cover);
     await assert.rejects(publish(d.req, { ...d.input, companyName: "different" }), { code: "IDEMPOTENCY_CONFLICT" });

@@ -3,15 +3,15 @@ import { randomUUID } from "node:crypto";
 import { resolve4 } from "node:dns/promises";
 import { request } from "node:https";
 
-import { imageMetadata, newSession, referenceURL, session, completeSession } from "./asset-service";
+import { imageMetadata, newSession, referenceURL, session, completeSession, type Asset } from "./asset-service";
 import { apiBase } from "./config";
 import { MAX_IMAGE_BYTES, MAX_PAYLOAD_BYTES, MAX_SESSION_BYTES, type TemplateRow } from "./contracts";
 import { sha256 } from "./crypto";
 import { TemplateError } from "./errors";
 import { logFailure } from "./log";
 import { mapImages, parsePayload, payloadBytes } from "./payload";
-import { registerAssetRecord } from "./repository";
-import { uploadObject } from "./storage";
+import { registerAssetRecord, rows } from "./repository";
+import { uploadObject, cosObjectReference } from "./storage";
 
 export function publicIPv4(address: string) {
   const parts = address.split(".").map(Number);
@@ -192,12 +192,20 @@ export async function snapshotForLegacyApproval(t: TemplateRow, admin: string) {
     jsonDownloadURL: t.payload_asset_id ? `template-asset:${t.payload_asset_id}` : t.json_download_url,
   };
   if (!t.cover_asset_id || !t.payload_asset_id) return legacySnapshot(input);
-  const { getAsset, downloadObject } = await import("./asset-service");
+  const { downloadObject } = await import("./asset-service");
+  const assets = await rows<Asset>(
+    "SELECT * FROM template_asset_records WHERE template_id=? AND state='sealed' AND sealed_key IS NOT NULL AND request_id IS NULL",
+    [t.id],
+  );
   return legacySnapshot(input, async (url, kind) => {
-    if (!url.startsWith("template-asset:")) throw new TemplateError("RESOURCE_INVALID", 422);
-    const asset = await getAsset(url.slice("template-asset:".length));
-    if (asset.template_id !== t.id || asset.kind !== kind || asset.state !== "sealed" || !asset.sealed_key)
-      throw new TemplateError("RESOURCE_INVALID", 422);
-    return downloadObject(asset.sealed_key, kind === "payload" ? MAX_PAYLOAD_BYTES : MAX_IMAGE_BYTES);
+    const asset = assets.find(
+      (a) =>
+        a.kind === kind &&
+        (url === `template-asset:${a.id}` ||
+          url === cosObjectReference(a.sealed_key!) ||
+          url === cosObjectReference(a.object_key)),
+    );
+    if (!asset) throw new TemplateError("RESOURCE_INVALID", 422);
+    return downloadObject(asset.sealed_key!, kind === "payload" ? MAX_PAYLOAD_BYTES : MAX_IMAGE_BYTES);
   });
 }

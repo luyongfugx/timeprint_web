@@ -4,7 +4,7 @@ import { checkReadable, normalizeCode } from "./access-policy";
 export { checkReadable, normalizeCode } from "./access-policy";
 import sharp from "sharp";
 
-import { getAsset, downloadObject } from "./asset-service";
+import { getAsset, downloadObject, type Asset } from "./asset-service";
 import { apiBase, enabled, shareOrigin } from "./config";
 import { type TemplateRow, type TemplateDetail, MAX_PAYLOAD_BYTES, MAX_IMAGE_BYTES } from "./contracts";
 import { sha256 } from "./crypto";
@@ -101,13 +101,20 @@ export async function payloadResponse(t: TemplateRow) {
     throw new TemplateError("RESOURCE_INVALID", 422);
   const bytes = await downloadObject(asset.sealed_key, MAX_PAYLOAD_BYTES);
   const payload = parsePayload(bytes, t.visibility);
+  const images = await rows<Asset>(
+    "SELECT * FROM template_asset_records WHERE template_id=? AND kind IN ('cover','logo') AND state='sealed' AND sealed_key IS NOT NULL AND request_id IS NULL",
+    [t.id],
+  );
   await mapImages(payload, async (url, kind) => {
-    if (!url.startsWith("template-asset:")) throw new TemplateError("RESOURCE_INVALID", 422);
-    const id = url.slice("template-asset:".length),
-      a = await getAsset(id);
-    if (a.template_id !== t.id || a.kind !== kind || a.state !== "sealed")
-      throw new TemplateError("RESOURCE_INVALID", 422);
-    return assetURL(id, t);
+    const a = images.find(
+      (image) =>
+        image.kind === kind &&
+        (url === `template-asset:${image.id}` ||
+          url === cosObjectReference(image.sealed_key!) ||
+          url === cosObjectReference(image.object_key)),
+    );
+    if (!a) throw new TemplateError("RESOURCE_INVALID", 422);
+    return cosObjectReference(a.sealed_key!);
   });
   await readTemplate(t.id, t.share_code);
   const output = payloadBytes(payload);
@@ -157,8 +164,15 @@ export async function legacyDownloadDTO(t: TemplateRow) {
       json_download_url: legacyURL(t.json_download_url, "payload").href,
     };
   }
-  const assets = await rows<{ id: string; kind: string; sealed_key: string; upload_mode: string | null }>(
-    `SELECT a.id,a.kind,a.sealed_key,JSON_UNQUOTE(JSON_EXTRACT(s.completion_json,'$.uploadMode')) AS upload_mode
+  const assets = await rows<{
+    id: string;
+    kind: string;
+    sealed_key: string;
+    upload_mode: string | null;
+    resource_format: string | null;
+  }>(
+    `SELECT a.id,a.kind,a.sealed_key,JSON_UNQUOTE(JSON_EXTRACT(s.completion_json,'$.uploadMode')) AS upload_mode,
+       JSON_UNQUOTE(JSON_EXTRACT(s.completion_json,'$.resourceFormat')) AS resource_format
      FROM template_assets a JOIN template_upload_sessions s ON s.id=a.upload_session_id
      WHERE a.template_id=? AND a.id IN (?,?) AND a.state='sealed' AND a.sealed_key IS NOT NULL
        AND a.request_id IS NULL`,
@@ -167,9 +181,8 @@ export async function legacyDownloadDTO(t: TemplateRow) {
   const cover = assets.find((a) => a.id === t.cover_asset_id && a.kind === "cover");
   const payload = assets.find((a) => a.id === t.payload_asset_id && a.kind === "payload");
   if (!cover || !payload) throw new TemplateError("RESOURCE_INVALID", 422);
-  // Deferred uploads already contain the client JSON. Older sealed snapshots contain
-  // template-asset: references and still require payloadResponse's URL conversion.
-  if (cover.upload_mode !== "deferred" || payload.upload_mode !== "deferred") return result;
+  // Old sealed snapshots still require payloadResponse's reference conversion.
+  if (payload.upload_mode !== "deferred" && payload.resource_format !== "cos") return result;
   return {
     ...result,
     cover_image_url: cosObjectReference(cover.sealed_key),

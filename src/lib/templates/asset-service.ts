@@ -98,11 +98,14 @@ export function referenceID(url: string, sid: string) {
 }
 // Match only the exact registered object in the authenticated session, never fetch client URLs.
 export function matchesCoverReference(url: string, s: Session, asset: Asset) {
+  return asset.kind === "cover" && matchesAssetReference(url, s, asset);
+}
+function matchesAssetReference(url: string, s: Session, asset: Asset) {
   return (
     asset.upload_session_id === s.id &&
-    asset.kind === "cover" &&
     (url === referenceURL(s.id, asset.id) ||
-      (s.visibility === "public" && url === cosObjectReference(asset.object_key)))
+      url === `template-asset:${asset.id}` ||
+      url === cosObjectReference(asset.object_key))
   );
 }
 export async function registerAsset(s: Session, token: string, input: z.infer<typeof registerAssetSchema>) {
@@ -168,6 +171,8 @@ export async function completeSession(
     if (asset.kind !== "payload") Object.assign(asset, await imageMetadata(bytes, asset.mime));
   });
   let semanticPayloadHash = "";
+  // Reserve final keys before serializing JSON so every stored resource URL is downloadable.
+  const sealedKeys = new Map(assets.map((asset) => [asset.id, `sealed/${s.id}/${randomUUID()}`]));
   if (payloadID) {
     const payload = parsePayload(contents.get(payloadID)!, s.visibility);
     if (
@@ -178,24 +183,20 @@ export async function completeSession(
     )
       throw new TemplateError("RESOURCE_INVALID", 422);
     payload.coverUrl = referenceURL(s.id, coverID!);
-    await mapImages(payload, async (url, kind) => {
-      const id = referenceID(url, s.id),
-        asset = assets.find((a) => a.id === id && a.kind === kind);
+    const referencedAsset = (url: string, kind: string) => {
+      const asset = assets.find((a) => a.kind === kind && matchesAssetReference(url, s, a));
       if (!asset) throw new TemplateError("RESOURCE_INVALID", 422);
-      return `template-asset:${id}`;
-    });
-    contents.set(payloadID, payloadBytes(payload));
+      return asset;
+    };
     const semantic = structuredClone(payload);
-    await mapImages(semantic, async (url) => {
-      const asset = assets.find((a) => `template-asset:${a.id}` === url);
-      if (!asset) throw new TemplateError("RESOURCE_INVALID", 422);
-      return `sha256:${asset.sha256}`;
-    });
+    await mapImages(semantic, async (url, kind) => `sha256:${referencedAsset(url, kind).sha256}`);
     semanticPayloadHash = sha256(payloadBytes(semantic));
+    await mapImages(payload, async (url, kind) => cosObjectReference(sealedKeys.get(referencedAsset(url, kind).id)!));
+    contents.set(payloadID, payloadBytes(payload));
   }
   const sealed = await mapAssetBatches(assets, async (asset) => {
     const bytes = contents.get(asset.id)!;
-    const key = `sealed/${s.id}/${randomUUID()}`;
+    const key = sealedKeys.get(asset.id)!;
     await uploadObject(key, bytes, asset.mime);
     return {
       id: asset.id,
@@ -213,6 +214,7 @@ export async function completeSession(
           coverWidth: cover!.width,
           coverHeight: cover!.height,
           payloadSHA256: sha256(contents.get(payloadID!)!),
+          resourceFormat: "cos",
         }
       : { state: "ready", attachmentIDs };
   const manifest = sha256(
