@@ -1,21 +1,18 @@
 import COS from "cos-nodejs-sdk-v5";
 
-export function cosConfig() {
+export function cosLocation() {
   const Bucket = process.env.TEMPLATE_COS_BUCKET ?? "wm-1330977225";
   const Region = process.env.TEMPLATE_COS_REGION ?? "ap-singapore";
   const Prefix = process.env.TEMPLATE_COS_PREFIX ?? "template-assets-v2";
+  if (!/^[a-z0-9-]+-\d+$/.test(Bucket) || !/^[a-z]+-[a-z]+(?:-\d+)?$/.test(Region) || !/^[a-zA-Z0-9_-]+$/.test(Prefix))
+    throw new Error("Configure a valid COS bucket, region and prefix.");
+  return { Bucket, Region, Prefix };
+}
+export function cosConfig() {
+  const { Bucket, Region, Prefix } = cosLocation();
   const SecretId = process.env.TEMPLATE_COS_SECRET_ID;
   const SecretKey = process.env.TEMPLATE_COS_SECRET_KEY;
-  if (
-    !/^[a-z0-9-]+-\d+$/.test(Bucket) ||
-    !/^[a-z]+-[a-z]+(?:-\d+)?$/.test(Region) ||
-    !/^[a-zA-Z0-9_-]+$/.test(Prefix) ||
-    !SecretId ||
-    !SecretKey
-  )
-    throw new Error(
-      "Configure TEMPLATE_COS_SECRET_ID / TEMPLATE_COS_SECRET_KEY and a valid COS bucket, region and prefix.",
-    );
+  if (!SecretId || !SecretKey) throw new Error("Configure TEMPLATE_COS_SECRET_ID / TEMPLATE_COS_SECRET_KEY.");
   return { Bucket, Region, Prefix, SecretId, SecretKey };
 }
 export function cosConfigured() {
@@ -32,10 +29,10 @@ export function createCOS() {
 }
 export function objectKey(key) {
   if (!/^(staging|sealed)\/[a-zA-Z0-9-]+\/[a-zA-Z0-9-]+$/.test(key)) throw new Error("Invalid template object key");
-  return `${cosConfig().Prefix}/${key}`;
+  return `${cosLocation().Prefix}/${key}`;
 }
-export function privateUploadHeaders(contentType) {
-  return { "Content-Type": contentType, "x-cos-acl": "private", "x-cos-forbid-overwrite": "true" };
+export function objectUploadHeaders(contentType) {
+  return { "Content-Type": contentType, "x-cos-forbid-overwrite": "true" };
 }
 export async function signedObjectURL(key, method, headers = {}, expires = 300) {
   const { Bucket, Region } = cosConfig();

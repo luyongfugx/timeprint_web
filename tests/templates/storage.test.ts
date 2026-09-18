@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import { cosConfigured, objectKey, signedObjectURL } from "../../scripts/lib/cos.mjs";
-import { signedUpload, uploadObject, downloadObject } from "../../src/lib/templates/storage";
+import { signedUpload, signedDeferredUpload, uploadObject, downloadObject } from "../../src/lib/templates/storage";
 
 Object.assign(process.env, {
   TEMPLATE_COS_BUCKET: "fixture-1234567890",
@@ -12,7 +12,13 @@ Object.assign(process.env, {
   TEMPLATE_COS_SECRET_KEY: "fixture-key",
 });
 
-test("COS: isolated keys and signed private PUT are bounded by session lifetime", async () => {
+test("COS: deferred uploads inherit bucket permissions without signing an ACL header", async () => {
+  const receipt = await signedDeferredUpload("sealed/session/asset", "application/json");
+  assert.equal("x-cos-acl" in receipt.uploadHeaders, false);
+  assert.equal(new URL(receipt.uploadURL).searchParams.get("q-header-list")?.split(";").includes("x-cos-acl"), false);
+});
+
+test("COS: isolated keys and signed PUT are bounded by session lifetime", async () => {
   assert.equal(cosConfigured(), true);
   assert.equal(objectKey("staging/session/asset"), "template-assets-v2/staging/session/asset");
   assert.throws(() => objectKey("../ugc_json/old.json"));
@@ -26,9 +32,10 @@ test("COS: isolated keys and signed private PUT are bounded by session lifetime"
   assert.equal(url.protocol, "https:");
   assert.equal(url.hostname, "fixture-1234567890.cos.ap-singapore.myqcloud.com");
   assert.equal(url.pathname, "/template-assets-v2/staging/session/asset");
-  assert.equal(receipt.uploadHeaders["x-cos-acl"], "private");
+  assert.equal("x-cos-acl" in receipt.uploadHeaders, false);
+  assert.equal(url.searchParams.get("q-header-list")?.split(";").includes("x-cos-acl"), false);
   assert.equal(receipt.uploadHeaders["x-cos-forbid-overwrite"], "true");
-  for (const name of ["content-type", "host", "x-cos-acl", "x-cos-forbid-overwrite"])
+  for (const name of ["content-type", "host", "x-cos-forbid-overwrite"])
     assert.ok(url.searchParams.get("q-header-list")?.split(";").includes(name));
   const [start, end] = url.searchParams.get("q-sign-time")!.split(";").map(Number);
   assert.ok(end - start <= 120);
@@ -40,7 +47,7 @@ test("COS: isolated keys and signed private PUT are bounded by session lifetime"
   });
 });
 
-test("COS: upload enforces private ACL; bounded downloads reject oversized or unavailable objects", async (t) => {
+test("COS: upload inherits bucket permissions; bounded downloads reject oversized or unavailable objects", async (t) => {
   const requests: { method: string; headers: Headers }[] = [];
   const replies = [
     new Response("", { status: 200 }),
@@ -54,7 +61,7 @@ test("COS: upload enforces private ACL; bounded downloads reject oversized or un
     return replies.shift()!;
   });
   await uploadObject("sealed/session/asset", Buffer.from("{}"), "application/json");
-  assert.equal(requests[0].headers.get("x-cos-acl"), "private");
+  assert.equal(requests[0].headers.has("x-cos-acl"), false);
   assert.equal(requests[0].headers.get("x-cos-forbid-overwrite"), "true");
   assert.deepEqual(await downloadObject("sealed/session/asset", 3), Buffer.from([1, 2, 3]));
   await assert.rejects(downloadObject("sealed/session/asset", 3), { code: "PAYLOAD_TOO_LARGE" });

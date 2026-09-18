@@ -10,9 +10,10 @@ import { type TemplateRow, type TemplateDetail, MAX_PAYLOAD_BYTES, MAX_IMAGE_BYT
 import { sha256 } from "./crypto";
 import { TemplateError } from "./errors";
 import { privateHeaders } from "./http";
-import { legacySnapshot } from "./legacy-assets";
+import { legacySnapshot, legacyURL } from "./legacy-assets";
 import { mapImages, parsePayload, payloadBytes } from "./payload";
 import { rows } from "./repository";
+import { cosObjectReference } from "./storage";
 import { attachLegacy } from "./transactions";
 
 import { randomUUID } from "node:crypto";
@@ -29,7 +30,10 @@ export async function readTemplate(id: string, code?: string | null) {
 }
 export async function byCode(code: string) {
   const normalized = normalizeCode(code);
-  const [data] = await rows<TemplateRow>("SELECT * FROM template_records WHERE UPPER(share_code)=?", [normalized]);
+  const [data] = await rows<TemplateRow>(
+    "SELECT *,CAST(id AS CHAR) AS id FROM watermarks_share_links WHERE normalized_share_code=?",
+    [normalized],
+  );
   if (!data) throw new TemplateError("TEMPLATE_NOT_FOUND", 404, "Template not found.");
   const t = data;
   checkReadable(t, normalized);
@@ -139,5 +143,36 @@ export function legacyDTO(t: TemplateRow) {
     created_at: t.created_at,
     share_code: t.share_code,
     expire_time: t.expire_time,
+  };
+}
+
+export async function legacyDownloadDTO(t: TemplateRow) {
+  const result = legacyDTO(t);
+  if (t.visibility === "private") return result;
+  if (!t.cover_asset_id && !t.payload_asset_id && t.contract_version === 1) {
+    // Reading an old share must not download, migrate and re-upload its resources.
+    return {
+      ...result,
+      cover_image_url: legacyURL(t.cover_image_url, "cover").href,
+      json_download_url: legacyURL(t.json_download_url, "payload").href,
+    };
+  }
+  const assets = await rows<{ id: string; kind: string; sealed_key: string; upload_mode: string | null }>(
+    `SELECT a.id,a.kind,a.sealed_key,JSON_UNQUOTE(JSON_EXTRACT(s.completion_json,'$.uploadMode')) AS upload_mode
+     FROM template_assets a JOIN template_upload_sessions s ON s.id=a.upload_session_id
+     WHERE a.template_id=? AND a.id IN (?,?) AND a.state='sealed' AND a.sealed_key IS NOT NULL
+       AND a.request_id IS NULL`,
+    [t.id, t.cover_asset_id, t.payload_asset_id],
+  );
+  const cover = assets.find((a) => a.id === t.cover_asset_id && a.kind === "cover");
+  const payload = assets.find((a) => a.id === t.payload_asset_id && a.kind === "payload");
+  if (!cover || !payload) throw new TemplateError("RESOURCE_INVALID", 422);
+  // Deferred uploads already contain the client JSON. Older sealed snapshots contain
+  // template-asset: references and still require payloadResponse's URL conversion.
+  if (cover.upload_mode !== "deferred" || payload.upload_mode !== "deferred") return result;
+  return {
+    ...result,
+    cover_image_url: cosObjectReference(cover.sealed_key),
+    json_download_url: cosObjectReference(payload.sealed_key),
   };
 }

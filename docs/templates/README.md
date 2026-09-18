@@ -67,17 +67,17 @@ MySQL 连接现由 Prisma Client 6.19.3 管理，运行时和维护脚本共用�
 4. 应用运行账号只授予所需分享表的 SELECT/INSERT/UPDATE/DELETE 和视图 SELECT；不给 CREATE/DROP/ALTER/GRANT；admin_accounts 仅 SELECT，admin_sessions 仅 SELECT/INSERT/DELETE；moderation_actions 只 INSERT/SELECT。管理员名单由受控数据库管理流程写入，普通注册用户不能自授角色。
 5. 执行 `npm run admin:init` 初始化管理员表及默认账号（使用迁移账号）。后台从 admin_accounts 校验邮箱、密码哈希、角色和启用状态，不再使用 Supabase Auth。部署与密码修改见 [管理员登录说明](./admin-login.md)。
 
-## 私有存储
+## COS 存储
 
 使用 COS 桶 `wm-1330977225`，地域 `ap-singapore`。新版资源仅位于 `template-assets-v2/staging/` 和 `template-assets-v2/sealed/`；旧目录不变。部署需 `TEMPLATE_COS_SECRET_ID`、`TEMPLATE_COS_SECRET_KEY`，不再需要任何 Supabase 环境变量。详见 [COS 配置与验证](./cos-storage.md)。
 
 ```bash
 node --env-file=.env.local scripts/prepare-template-storage.mjs
-# 写入一个临时测试对象，验证私有读写和匿名拒绝，再删除测试对象：
+# 写入一个临时测试对象，验证签名上传和匿名读取，再删除测试对象：
 node --env-file=.env.local scripts/prepare-template-storage.mjs --apply
 ```
 
-注册回执使用腾讯官方 SDK 生成签名 PUT，签名包含 Content-Type、私有 ACL、禁止覆盖请求头。有效期不超过剩余会话时间且最多 1 小时。complete 校验上传字节摘要并保存到全新的 sealed key，旧上传凭据不能改写正式文件。服务端下载受字节上限、15 秒超时限制；不跟随重定向。分享权限、到期和下架仍由业务 API 检查。
+注册回执使用腾讯官方 SDK 生成签名 PUT，签名包含 Content-Type、禁止覆盖请求头；不设置对象 ACL，新对象继承桶权限。有效期不超过剩余会话时间且最多 1 小时。complete 校验上传字节摘要并保存到全新的 sealed key，旧上传凭据不能改写正式文件。服务端下载受字节上限、15 秒超时限制；不跟随重定向。分享权限、到期和下架仍由业务 API 检查。
 
 旧 public COS 输入仅允许 `TEMPLATE_ALLOWED_LEGACY_ASSET_HOSTS` 中的精确域名和 `/ugc_cover/`、`/ugc_json/`、`/ugc_logo/` 文件路径；域名白名单默认空。https、无用户信息、无非标准端口，拒绝重定向，DNS 公网 IPv4 校验并固定连接地址，下载上限和超时。private 必须使用上传会话，不能把旧公开 URL 包装成私密。
 

@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { cosConfig, createCOS, objectKey, privateUploadHeaders, signedObjectURL } from "./lib/cos.mjs";
+import { cosConfig, createCOS, objectKey, objectUploadHeaders, signedObjectURL } from "./lib/cos.mjs";
 const { Bucket, Region, Prefix } = cosConfig();
 const client = createCOS();
 await client.headBucket({ Bucket, Region });
@@ -7,7 +7,7 @@ console.log(JSON.stringify({ bucket: Bucket, region: Region, prefix: Prefix, rea
 if (process.argv.includes("--apply")) {
   // Probe only our dedicated directory. Never change the existing bucket ACL.
   const key = `staging/${randomUUID()}/${randomUUID()}`;
-  const headers = privateUploadHeaders("application/json");
+  const headers = objectUploadHeaders("application/json");
   const upload = await signedObjectURL(key, "PUT", headers);
   let uploaded = false;
   try {
@@ -24,17 +24,15 @@ if (process.argv.includes("--apply")) {
     const signed = await signedObjectURL(key, "GET");
     const read = await fetch(signed, { redirect: "error", signal: AbortSignal.timeout(15000) });
     await read.body?.cancel();
-    if (!read.ok) throw new Error(`COS private read probe failed (${read.status})`);
+    if (!read.ok) throw new Error(`COS signed read probe failed (${read.status})`);
     const anonymous = new URL(signed);
     anonymous.search = "";
-    const denied = await fetch(anonymous, { redirect: "error", signal: AbortSignal.timeout(15000) });
-    await denied.body?.cancel();
-    if (denied.status !== 403)
-      throw new Error(
-        `Anonymous access must return 403; got ${denied.status}. Check bucket policy before enabling shares.`,
-      );
-    console.log("COS upload/read passed; anonymous access is denied.");
+    const publicRead = await fetch(anonymous, { redirect: "error", signal: AbortSignal.timeout(15000) });
+    await publicRead.body?.cancel();
+    if (!publicRead.ok)
+      throw new Error(`Anonymous access must succeed; got ${publicRead.status}. Check bucket permissions.`);
+    console.log("COS upload/read passed; anonymous access is allowed.");
   } finally {
     if (uploaded) await client.deleteObject({ Bucket, Region, Key: objectKey(key) });
   }
-} else console.log("Run with --apply to verify private upload/read using one temporary object, then remove it.");
+} else console.log("Run with --apply to verify upload and anonymous read using one temporary object, then remove it.");

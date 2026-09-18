@@ -148,7 +148,7 @@ test("deferred plans reserve addresses without COS I/O and publish before bytes 
     assert.equal(stored!.state, "ready");
     for (const a of plan.assets) {
       assert.ok(a.objectURL.includes(`/sealed/${input.clientRequestID}/`));
-      assert.equal(a.uploadHeaders["x-cos-acl"], "private");
+      assert.equal("x-cos-acl" in a.uploadHeaders, false);
       assert.equal(a.uploadHeaders["x-cos-forbid-overwrite"], undefined);
     }
     await createDeferredPlan(parsed);

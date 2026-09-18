@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import { normalizeCode } from "@/lib/templates/access-policy";
-import { byCode, ensureSnapshot, legacyDTO } from "@/lib/templates/access-service";
+import { byCode, legacyDownloadDTO } from "@/lib/templates/access-service";
 import { adminAuth } from "@/lib/templates/admin-auth";
 import { type TemplateRow } from "@/lib/templates/contracts";
 import { transaction, rows } from "@/lib/templates/database";
@@ -21,8 +21,9 @@ export async function GET(req: Request, ctx: Context) {
   return endpoint(
     req,
     async () => {
-      await requestLimit(req, "legacy-code");
-      return json({ shareLink: legacyDTO(await ensureSnapshot(await byCode((await ctx.params).id))) });
+      const code = normalizeCode((await ctx.params).id);
+      const [, template] = await Promise.all([requestLimit(req, "legacy-code"), byCode(code)]);
+      return json({ shareLink: await legacyDownloadDTO(template) });
     },
     true,
   );
