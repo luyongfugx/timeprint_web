@@ -104,8 +104,8 @@ export async function completeSessionRecord(
       throw new TemplateError("RESOURCE_INVALID", 422);
     for (const a of assets)
       await write(
-        "UPDATE template_assets SET sealed_key=?,sealed_sha256=?,width=?,height=?,state='sealed' WHERE id=? AND upload_session_id=?",
-        [a.sealedKey, a.sealedSHA256, a.width ?? null, a.height ?? null, a.id, sid],
+        "UPDATE template_assets SET sealed_key=?,sealed_sha256=?,mime=COALESCE(?,mime),bytes=COALESCE(?,bytes),width=?,height=?,state='sealed' WHERE id=? AND upload_session_id=?",
+        [a.sealedKey, a.sealedSHA256, a.mime ?? null, a.bytes ?? null, a.width ?? null, a.height ?? null, a.id, sid],
         c,
       );
     await write(

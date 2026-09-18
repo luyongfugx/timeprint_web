@@ -54,9 +54,26 @@ export async function ensureSnapshot(t: TemplateRow) {
 export function assetURL(id: string, t: TemplateRow) {
   return `${apiBase()}/assets/${id}${t.visibility !== "public" ? `?code=${encodeURIComponent(t.share_code)}` : ""}`;
 }
-export function detail(t: TemplateRow): TemplateDetail {
+/**
+ * Sealed covers live on COS and are directly readable, exactly like the image
+ * references inside payloadResponse; hand out that address instead of the
+ * applink proxy so clients stop downloading covers from wm.timeprint.net.
+ */
+export async function sealedCoverURL(t: TemplateRow): Promise<string | null> {
+  if (!t.cover_asset_id) return null;
+  try {
+    const asset = await getAsset(t.cover_asset_id);
+    if (asset.state === "sealed" && asset.sealed_key && !asset.request_id) return cosObjectReference(asset.sealed_key);
+  } catch {
+    // Fall back to the proxied asset URL below.
+  }
+  return null;
+}
+export async function detail(t: TemplateRow): Promise<TemplateDetail> {
   const suffix = t.visibility !== "public" ? `?code=${encodeURIComponent(t.share_code)}` : "";
-  const url = assetURL(t.cover_asset_id!, t);
+  const proxy = assetURL(t.cover_asset_id!, t);
+  const sealed = await sealedCoverURL(t);
+  const url = sealed ?? proxy;
   return {
     contractVersion: 2,
     templateID: String(t.id),
@@ -69,7 +86,9 @@ export function detail(t: TemplateRow): TemplateDetail {
     cover: {
       kind: t.cover_kind,
       url,
-      thumbnailURL: `${url}${suffix ? "&" : "?"}variant=thumb`,
+      // COS media processing renders the thumbnail on the fly, so list images
+      // never touch the applink proxy either.
+      thumbnailURL: sealed ? `${sealed}?imageMogr2/thumbnail/480x640` : `${proxy}${suffix ? "&" : "?"}variant=thumb`,
       width: t.cover_width ?? 1,
       height: t.cover_height ?? 1,
     },
@@ -90,8 +109,8 @@ export function detail(t: TemplateRow): TemplateDetail {
     canReport: enabled("REPORT"),
   };
 }
-export function card(t: TemplateRow) {
-  const { payload: _payload, ...result } = detail(t);
+export async function card(t: TemplateRow) {
+  const { payload: _payload, ...result } = await detail(t);
   return result;
 }
 export async function payloadResponse(t: TemplateRow) {
@@ -128,18 +147,32 @@ export async function assetResponse(id: string, code: string | null, thumbnail =
     throw new TemplateError("TEMPLATE_NOT_FOUND", 404);
   const t = await readTemplate(asset.template_id, code);
   if (asset.kind === "payload") return payloadResponse(t);
+  let mime = asset.mime;
   let bytes: Buffer = await downloadObject(asset.sealed_key, MAX_IMAGE_BYTES);
-  if (thumbnail)
-    bytes = await sharp(bytes, { limitInputPixels: 25_000_000 })
-      .resize({ width: 480, height: 640, fit: "inside", withoutEnlargement: true })
-      .toBuffer();
+  if (thumbnail) {
+    // Thumbnails are list art, not user content: re-encode small instead of
+    // echoing the full-size PNG verbatim.
+    const meta = await sharp(bytes, { limitInputPixels: 25_000_000 }).metadata();
+    const scaled = sharp(bytes, { limitInputPixels: 25_000_000 }).resize({
+      width: 480,
+      height: 640,
+      fit: "inside",
+      withoutEnlargement: true,
+    });
+    if (meta.hasAlpha) {
+      bytes = await scaled.png({ palette: true, compressionLevel: 9 }).toBuffer();
+    } else {
+      bytes = await scaled.flatten({ background: "#ffffff" }).jpeg({ quality: 80 }).toBuffer();
+      mime = "image/jpeg";
+    }
+  }
   await readTemplate(t.id, code);
   return new Response(new Uint8Array(bytes), {
-    headers: { ...privateHeaders, "Content-Type": asset.mime, "Content-Length": String(bytes.length) },
+    headers: { ...privateHeaders, "Content-Type": mime, "Content-Length": String(bytes.length) },
   });
 }
-export function legacyDTO(t: TemplateRow) {
-  const d = detail(t);
+export async function legacyDTO(t: TemplateRow) {
+  const d = await detail(t);
   return {
     id: d.templateID,
     watermark_name: d.watermarkName,
@@ -154,7 +187,7 @@ export function legacyDTO(t: TemplateRow) {
 }
 
 export async function legacyDownloadDTO(t: TemplateRow) {
-  const result = legacyDTO(t);
+  const result = await legacyDTO(t);
   if (t.visibility === "private") return result;
   if (!t.cover_asset_id && !t.payload_asset_id && t.contract_version === 1) {
     // Reading an old share must not download, migrate and re-upload its resources.

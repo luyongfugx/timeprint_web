@@ -171,6 +171,22 @@ export async function completeSession(
     if (asset.kind !== "payload") Object.assign(asset, await imageMetadata(bytes, asset.mime));
   });
   let semanticPayloadHash = "";
+  // Covers must fit the shared byte budget no matter which client produced
+  // them; compressed uploads pass through untouched.
+  if (s.purpose === "template") {
+    const cover = assets.find((a) => a.id === coverID);
+    if (cover) {
+      const compressed = await compressCover(contents.get(cover.id)!, String(cover.mime));
+      if (compressed) {
+        contents.set(cover.id, compressed.bytes);
+        Object.assign(cover, {
+          mime: compressed.mime,
+          bytes: compressed.bytes.length,
+          sha256: sha256(compressed.bytes),
+        });
+      }
+    }
+  }
   // Reserve final keys before serializing JSON so every stored resource URL is downloadable.
   const sealedKeys = new Map(assets.map((asset) => [asset.id, `sealed/${s.id}/${randomUUID()}`]));
   if (payloadID) {
@@ -202,6 +218,8 @@ export async function completeSession(
       id: asset.id,
       sealedKey: key,
       sealedSHA256: sha256(bytes),
+      mime: asset.mime,
+      bytes: Number(asset.bytes),
       width: asset.width,
       height: asset.height,
     };
@@ -227,6 +245,37 @@ export async function completeSession(
     }),
   );
   return completeSessionRecord(s.id, sha256(token), sealed, manifest, receipt, coverID, payloadID);
+}
+/** Every sealed cover must fit in this budget; clients enforce it too. */
+export const coverMaxBytes = 200_000;
+/**
+ * Bring an oversized cover under `coverMaxBytes`. Clients cap at 200 KB, but
+ * legacy snapshots and old app versions may still deliver huge PNGs. Opaque
+ * images run a JPEG quality ladder, alpha images shrink as palette PNG; the
+ * resolution drops another 25% per round. Returns null when the bytes already
+ * fit or nothing smaller could be produced.
+ */
+export async function compressCover(bytes: Buffer, mime: string): Promise<{ bytes: Buffer; mime: string } | null> {
+  if (bytes.length <= coverMaxBytes || (mime !== "image/png" && mime !== "image/jpeg")) return null;
+  const meta = await sharp(bytes, { limitInputPixels: 25_000_000 }).metadata();
+  if (!meta.width || !meta.height) return null;
+  let best: { bytes: Buffer; mime: string } | null = null;
+  for (let step = 0; step < 8; step++) {
+    const pipeline = sharp(bytes, { limitInputPixels: 25_000_000 }).resize({
+      width: Math.max(1, Math.round(meta.width * 0.75 ** step)),
+    });
+    for (const quality of [85, 75, 65, 50]) {
+      const encoded = meta.hasAlpha
+        ? { bytes: await pipeline.clone().png({ palette: true, compressionLevel: 9 }).toBuffer(), mime: "image/png" }
+        : {
+            bytes: await pipeline.clone().flatten({ background: "#ffffff" }).jpeg({ quality }).toBuffer(),
+            mime: "image/jpeg",
+          };
+      if (!best || encoded.bytes.length < best.bytes.length) best = encoded;
+      if (encoded.bytes.length <= coverMaxBytes) return encoded;
+    }
+  }
+  return best && best.bytes.length < bytes.length ? best : null;
 }
 export async function getAsset(id: string): Promise<Asset> {
   const [data] = await rows<Asset>("SELECT * FROM template_asset_records WHERE id=?", [id]);

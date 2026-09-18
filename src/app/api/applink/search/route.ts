@@ -37,30 +37,30 @@ export async function POST(req: Request) {
          ORDER BY created_at DESC,id DESC LIMIT ${input.limit} OFFSET ${offset}`,
         [input.keyword, input.keyword, input.keyword],
       );
-      const results = data.flatMap((t) => {
+      const results = [];
+      for (const t of data) {
         try {
           checkReadable(t, t.share_code);
           if (t.contract_version === 1 && !t.cover_asset_id && !t.payload_asset_id) {
             // Preserve the old public catalog without admitting v2 private shares into search.
-            return [
-              {
-                id: t.id,
-                watermark_name: t.watermark_name,
-                company_name: t.company_name ?? "",
-                cover_image_url: legacyURL(t.cover_image_url, "cover").href,
-                json_download_url: legacyURL(t.json_download_url, "payload").href,
-                status: t.status,
-                created_at: t.created_at,
-                share_code: t.share_code,
-                expire_time: t.expire_time,
-              },
-            ];
+            results.push({
+              id: t.id,
+              watermark_name: t.watermark_name,
+              company_name: t.company_name ?? "",
+              cover_image_url: legacyURL(t.cover_image_url, "cover").href,
+              json_download_url: legacyURL(t.json_download_url, "payload").href,
+              status: t.status,
+              created_at: t.created_at,
+              share_code: t.share_code,
+              expire_time: t.expire_time,
+            });
+            continue;
           }
-          return [legacyDTO(t)];
+          results.push(await legacyDTO(t));
         } catch {
-          return [];
+          // Skip unreadable rows.
         }
-      });
+      }
       return json({ results, page: input.page, perPage: input.limit });
     },
     true,

@@ -95,7 +95,7 @@ export async function v2Route(req: Request, path: string[]) {
       return json(await discovery(input.data));
     }
     if (req.method === "GET" && path[0] === "by-code" && path.length === 2)
-      return json(detail(await ensureSnapshot(await byCode(path[1]))));
+      return json(await detail(await ensureSnapshot(await byCode(path[1]))));
     if (req.method === "GET" && path[0] === "assets" && path.length === 2) {
       if (!uuid.safeParse(path[1]).success) throw new TemplateError("INVALID_REQUEST");
       const q = new URL(req.url).searchParams;
@@ -104,7 +104,7 @@ export async function v2Route(req: Request, path: string[]) {
     if (path[0] === "templates" && path.length >= 2 && path.length <= 3) {
       if (!identifier.safeParse(path[1]).success) throw new TemplateError("INVALID_REQUEST");
       if (req.method === "GET" && path.length === 2)
-        return json(detail(await ensureSnapshot(await readTemplate(path[1]))));
+        return json(await detail(await ensureSnapshot(await readTemplate(path[1]))));
       if (req.method === "GET" && path[2] === "payload")
         return payloadResponse(await readTemplate(path[1], new URL(req.url).searchParams.get("code")));
       if (req.method === "POST" && path[2] === "uses") {

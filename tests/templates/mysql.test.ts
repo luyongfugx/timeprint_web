@@ -206,11 +206,13 @@ test(
     assert.equal(Date.parse(String(receipt.expiresAt)) - Date.parse(String(receipt.createdAt)), 2592000000);
     await assert.rejects(readTemplate(receipt.templateID), { code: "TEMPLATE_NOT_FOUND" });
     const t = await byCode(receipt.shareCode);
-    const dto = detail(t);
+    const dto = await detail(t);
     assert.equal(dto.companyName, "");
     assert.equal(dto.watermarkName, "");
     assert.equal(dto.useCount, null);
-    assert.ok(dto.cover.url.includes("code="));
+    // The full cover and its on-the-fly COS thumbnail both skip the applink proxy.
+    assert.match(dto.cover.url, /^https:\/\/[^/]+\.myqcloud\.com\/template-assets-v2\/sealed\//);
+    assert.match(dto.cover.thumbnailURL, /^https:\/\/[^/]+\.myqcloud\.com\/.*imageMogr2\/thumbnail/);
     await assert.rejects(assetResponse(d.c.assetID, null), { code: "TEMPLATE_NOT_FOUND" });
     const response = await payloadResponse(t),
       bytes = await response.text();

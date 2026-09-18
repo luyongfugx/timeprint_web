@@ -104,7 +104,7 @@ export async function publicPage(input: z.infer<typeof listSchema>, query = "", 
         if (e instanceof TemplateError && e.status === 410) continue;
         throw e;
       }
-      items.push(card(t));
+      items.push(await card(t));
     }
   }
   return {
@@ -130,9 +130,9 @@ export async function search(input: z.infer<typeof searchSchema>) {
     return {
       contractVersion: 2,
       queryType: "code",
-      sections: [{ visibility: t.visibility, items: [card(t)] }],
+      sections: [{ visibility: t.visibility, items: [await card(t)] }],
       nextCursor: null,
-      resolvedTemplate: detail(t),
+      resolvedTemplate: await detail(t),
       autoOpenTemplateID: t.id,
     };
   }
