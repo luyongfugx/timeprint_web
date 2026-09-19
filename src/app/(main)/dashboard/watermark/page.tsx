@@ -67,9 +67,21 @@ function CoverPreview({ row, onOpen }: { row: Row; onOpen: () => void }) {
   const [failed, setFailed] = useState(false);
   const [attempt, setAttempt] = useState(0);
   if (!row.coverPreviewURL) return <div className="text-muted-foreground p-6 text-sm">暂无封面</div>;
-  const thumbnail = `${row.coverPreviewURL}?variant=thumb&retry=${attempt}`;
+  // COS direct links support CI thumbnails; the authenticated proxy keeps its own variant.
+  const cos = /myqcloud\.com\//.test(row.coverPreviewURL);
+  const thumbnail = cos
+    ? `${row.coverPreviewURL}?imageMogr2/thumbnail/480x640&retry=${attempt}`
+    : `${row.coverPreviewURL}?variant=thumb&retry=${attempt}`;
   return (
-    <div className="bg-muted/30 flex min-h-44 items-center justify-center rounded-lg border p-3">
+    <div
+      className="flex min-h-44 items-center justify-center rounded-lg border p-3"
+      // Transparent covers composite on the same clean backdrop the apps use.
+      style={{
+        backgroundImage: "url(/template_share/clean.png)",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+      }}
+    >
       {failed ? (
         <div className="space-y-2 text-center text-sm">
           <p className="text-muted-foreground">封面加载失败</p>

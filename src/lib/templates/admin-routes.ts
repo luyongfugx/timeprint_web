@@ -21,6 +21,7 @@ import { TemplateError } from "./errors";
 import { endpoint, json, body, privateHeaders } from "./http";
 import { fetchLegacy, legacyURL, snapshotForLegacyApproval } from "./legacy-assets";
 import { publish } from "./publish-service";
+import { cosObjectReference } from "./storage";
 import {
   editTemplateMetadata,
   deleteTemplate,
@@ -90,15 +91,20 @@ export async function adminRoute(req: Request, path: string[]) {
           `SELECT COUNT(*) AS total FROM template_records ${where}`,
           values,
         );
-        const results = await rows<TemplateRow>(
-          `SELECT * FROM template_records ${where} ORDER BY created_at DESC,id DESC LIMIT ${pageSize.data} OFFSET ${offset}`,
+        const results = await rows<TemplateRow & { cover_sealed_key: string | null }>(
+          `SELECT t.*, ca.sealed_key AS cover_sealed_key FROM template_records t
+           LEFT JOIN template_assets ca ON ca.id=t.cover_asset_id AND ca.kind='cover' AND ca.state='sealed'
+           ${where} ORDER BY t.created_at DESC,t.id DESC LIMIT ${pageSize.data} OFFSET ${offset}`,
           values,
         );
-        // Source URLs and internal credentials are never serialized by admin lists.
+        // Sealed covers are public COS objects, so the list links them directly with CI
+        // thumbnails instead of the slow authenticated proxy; legacy rows keep the proxy.
         return json({
-          results: results.map(({ cover_image_url: _cover, json_download_url: _payload, ...t }) => ({
+          results: results.map(({ cover_image_url: _cover, json_download_url: _payload, cover_sealed_key, ...t }) => ({
             ...t,
-            coverPreviewURL: `/api/admin/templates/${encodeURIComponent(t.id)}/cover`,
+            coverPreviewURL: cover_sealed_key
+              ? cosObjectReference(cover_sealed_key)
+              : `/api/admin/templates/${encodeURIComponent(t.id)}/cover`,
             payloadDownloadURL: `/api/admin/templates/${encodeURIComponent(t.id)}/payload`,
           })),
           page: page.data,
@@ -174,8 +180,9 @@ export async function adminRoute(req: Request, path: string[]) {
         const reports = await rows<Record<string, any>>(
           `SELECT r.id,CAST(r.template_id AS CHAR) AS template_id,r.reason,r.source,r.status,r.created_at,r.resolved_at,r.resolution,
             t.id AS watermark_id,t.watermark_name,t.company_name,t.share_code,t.status AS watermark_status,t.created_at AS watermark_created_at,
-            t.contract_version,t.visibility,t.expire_time,t.expires_at,t.use_count
+            t.contract_version,t.visibility,t.expire_time,t.expires_at,t.use_count,ca.sealed_key AS watermark_cover_key
            FROM template_reports r LEFT JOIN template_records t ON t.id=r.template_id
+           LEFT JOIN template_assets ca ON ca.id=t.cover_asset_id AND ca.kind='cover' AND ca.state='sealed'
            ORDER BY r.created_at DESC,r.id DESC LIMIT ${pageSize.data} OFFSET ${offset}`,
         );
         return json({
@@ -192,6 +199,7 @@ export async function adminRoute(req: Request, path: string[]) {
               expire_time,
               expires_at,
               use_count,
+              watermark_cover_key,
               ...report
             }) => ({
               ...report,
@@ -210,7 +218,9 @@ export async function adminRoute(req: Request, path: string[]) {
                       expire_time,
                       expires_at,
                       use_count,
-                      coverPreviewURL: `/api/admin/templates/${encodeURIComponent(watermark_id)}/cover`,
+                      coverPreviewURL: watermark_cover_key
+                        ? cosObjectReference(watermark_cover_key)
+                        : `/api/admin/templates/${encodeURIComponent(watermark_id)}/cover`,
                       payloadDownloadURL: `/api/admin/templates/${encodeURIComponent(watermark_id)}/payload`,
                     },
             }),
