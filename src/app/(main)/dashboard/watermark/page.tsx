@@ -173,6 +173,12 @@ export default function Page() {
   const [operationNote, setOperationNote] = useState("");
   const [operationError, setOperationError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [checked, setChecked] = useState<Set<string>>(new Set());
+  const [batchConfirm, setBatchConfirm] = useState(false);
+  const [batchNote, setBatchNote] = useState("");
+  const [deleting, setDeleting] = useState(false);
+  const [batchError, setBatchError] = useState("");
+  const [batchResult, setBatchResult] = useState("");
   const [review, setReview] = useState<{
     row: Row;
     title: string;
@@ -262,6 +268,46 @@ export default function Page() {
     if (!res.ok) throw new Error(result.error?.message ?? "操作失败");
     return result;
   };
+  function toggleChecked(id: string, value: boolean) {
+    setChecked((prev) => {
+      const next = new Set(prev);
+      if (value) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  }
+  async function deleteChecked() {
+    if (!checked.size || deleting) return;
+    setDeleting(true);
+    setBatchError("");
+    let ok = 0;
+    const failures: string[] = [];
+    for (const id of checked) {
+      const row = rows.find((r) => r.id === id);
+      if (!row) continue;
+      try {
+        await api(`/${encodeURIComponent(row.id)}`, "DELETE", {
+          reason: batchNote.trim() || "后台批量删除分享",
+          expectedUpdatedAt: row.updated_at,
+        });
+        ok++;
+      } catch (e) {
+        failures.push(`${row.share_code ?? row.id}（${e instanceof Error ? e.message : "操作失败"}）`);
+      }
+    }
+    setDeleting(false);
+    setBatchConfirm(false);
+    setBatchNote("");
+    setChecked(new Set());
+    setRevision((v) => v + 1);
+    if (!ok && failures.length) setBatchError(`批量删除失败：${failures.join("；")}`);
+    else
+      setBatchResult(
+        failures.length
+          ? `已删除 ${ok} 条，失败 ${failures.length} 条：${failures.join("；")}`
+          : `已删除 ${ok} 条水印分享`,
+      );
+  }
   useEffect(() => {
     if (tab === "trending") return;
     const controller = new AbortController();
@@ -282,6 +328,12 @@ export default function Page() {
         if (controller.signal.aborted) return;
         setRows(result.results);
         setTotal(result.total);
+        // Keep only selections that still exist in the freshly loaded list.
+        setChecked((prev) => {
+          const next = new Set<string>();
+          for (const row of result.results as Row[]) if (prev.has(row.id)) next.add(row.id);
+          return next;
+        });
         const lastPage = Math.min(10000, Math.max(1, Math.ceil(result.total / pageSize)));
         if (page > lastPage) setPage(lastPage);
       })
@@ -463,6 +515,51 @@ export default function Page() {
           </form>
         </DialogContent>
       </Dialog>
+      <Dialog
+        open={batchConfirm}
+        onOpenChange={(open) => {
+          if (!open && !deleting) setBatchConfirm(false);
+        }}
+      >
+        <DialogContent showCloseButton={!deleting}>
+          <DialogHeader>
+            <DialogTitle>批量删除选中的水印</DialogTitle>
+            <DialogDescription>
+              将删除 {checked.size} 条选中的水印分享，删除后分享链接停止访问；保留历史记录和文件关联，不会删除原始文件。
+            </DialogDescription>
+          </DialogHeader>
+          <label className="block space-y-1 text-sm">
+            <span>操作说明（可选）</span>
+            <textarea
+              className="w-full rounded border bg-transparent p-2"
+              value={batchNote}
+              maxLength={2000}
+              onChange={(e) => setBatchNote(e.target.value)}
+              disabled={deleting}
+            />
+          </label>
+          {batchError && (
+            <p role="alert" className="text-sm text-red-600">
+              {batchError}
+            </p>
+          )}
+          <div className="flex justify-end gap-3">
+            <button type="button" className={button} disabled={deleting} onClick={() => setBatchConfirm(false)}>
+              取消
+            </button>
+            <button
+              type="button"
+              className={`${button} bg-red-600 text-white`}
+              disabled={deleting}
+              onClick={() => {
+                void deleteChecked();
+              }}
+            >
+              {deleting ? "处理中…" : `确认删除（${checked.size}）`}
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
       <header>
         <h1 className="text-2xl font-semibold">水印分享管理</h1>
         <p className="text-muted-foreground mt-2 text-sm">管理公开分享、私密码分享、举报与公司模板需求。</p>
@@ -523,6 +620,46 @@ export default function Page() {
           </button>
         </form>
       )}
+      {tab === "templates" && !busy && rows.length > 0 && (
+        <div className="flex flex-wrap items-center gap-3">
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              aria-label="全选本页"
+              checked={rows.length > 0 && rows.every((row) => checked.has(row.id))}
+              onChange={(e) =>
+                setChecked((prev) => {
+                  const next = new Set(prev);
+                  for (const row of rows) {
+                    if (e.target.checked) next.add(row.id);
+                    else next.delete(row.id);
+                  }
+                  return next;
+                })
+              }
+            />
+            全选本页
+          </label>
+          <button
+            type="button"
+            className={`${button} bg-red-600 text-white`}
+            disabled={busy || checked.size === 0}
+            onClick={() => {
+              setBatchError("");
+              setBatchResult("");
+              setBatchConfirm(true);
+            }}
+          >
+            删除选中（{checked.size}）
+          </button>
+          {batchResult && <p className="text-sm text-emerald-700">{batchResult}</p>}
+          {batchError && (
+            <p role="alert" className="text-sm text-red-600">
+              {batchError}
+            </p>
+          )}
+        </div>
+      )}
       {tab === "trending" ? (
         <TrendingEditors />
       ) : busy ? (
@@ -534,14 +671,25 @@ export default function Page() {
           {rows.map((row) => (
             <article key={row.id} className="space-y-3 rounded-xl border p-5">
               <div className="flex flex-wrap justify-between gap-3">
-                <h2 className="font-semibold break-words">
-                  {tab === "templates"
-                    ? `名称：${row.watermark_name?.trim() ? row.watermark_name : "未填写"}`
-                    : tab === "reports"
-                      ? `名称：${watermarkName(row.template)}`
-                      : ([row.watermark_name, row.company_name].find(Boolean) ??
-                        (row.kind === "company" ? "公司模板需求" : "内容审核"))}
-                </h2>
+                <div className="flex items-start gap-2">
+                  {tab === "templates" && (
+                    <input
+                      type="checkbox"
+                      aria-label={`选择 ${row.watermark_name?.trim() ? row.watermark_name : "未填写"}`}
+                      className="mt-1 size-4 shrink-0"
+                      checked={checked.has(row.id)}
+                      onChange={(e) => toggleChecked(row.id, e.target.checked)}
+                    />
+                  )}
+                  <h2 className="font-semibold break-words">
+                    {tab === "templates"
+                      ? `名称：${row.watermark_name?.trim() ? row.watermark_name : "未填写"}`
+                      : tab === "reports"
+                        ? `名称：${watermarkName(row.template)}`
+                        : ([row.watermark_name, row.company_name].find(Boolean) ??
+                          (row.kind === "company" ? "公司模板需求" : "内容审核"))}
+                  </h2>
+                </div>
                 {tab !== "templates" && (
                   <span className="text-muted-foreground text-sm">
                     {tab === "reports" ? "举报时间：" : ""}
