@@ -74,8 +74,15 @@ export async function publishTransaction(
     }
     if (s.state !== "ready" || Date.parse(s.expires_at) <= Date.now())
       throw new TemplateError("UPLOAD_SESSION_EXPIRED", 410);
-    await rateLimit(actor, "publish-hour", 5, 3600, c);
-    await rateLimit(actor, "publish-day", 20, 86400, c);
+    // V2 clients provide a stable installation UUID, so these quotas are
+    // genuinely per user. Legacy clients may omit userId and are normalized
+    // to the shared "legacy-anonymous" actor; applying these quotas to them
+    // would let a few shares block every anonymous legacy client. The legacy
+    // route retains its request/IP rate limit before it reaches this transaction.
+    if (contract === 2) {
+      await rateLimit(actor, "publish-hour", 5, 3600, c);
+      await rateLimit(actor, "publish-day", 20, 86400, c);
+    }
     const [clock] = await rows<{ stamp: string }>("SELECT UTC_TIMESTAMP(0) AS stamp", [], c);
     const stamp = new Date(clock.stamp),
       duration = contract === 1 ? legacyExpiry : input.visibility === "private" ? 2_592_000 : 0;
