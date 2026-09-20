@@ -238,6 +238,7 @@ test(
       query: receipt.shareCode,
       mode: "code",
       locale: "en",
+      language: "en",
       limit: 20,
       excludedTemplateIDs: [],
     });
@@ -293,7 +294,7 @@ test(
       b = await draft("public", "Pagination sample"),
       c = await draft("public", "Pagination sample");
     const published = await Promise.all([a, b, c].map((d) => publish(d.req, d.input)));
-    const input = { locale: "en", limit: 1, excludedTemplateIDs: [] };
+    const input = { locale: "en", language: "en", limit: 1, excludedTemplateIDs: [] };
     const first = await publicPage(input, "Pagination sample", "keyword");
     assert.ok(first.nextCursor);
     const target = published.find((r) => r.receipt.templateID !== first.items[0].templateID)!;
@@ -576,7 +577,11 @@ test(
       assert.equal(after[key], before[key]);
     assert.equal(after.visibility, "public");
     assert.equal(after.discovery_state, "eligible");
-    const page = await publicPage({ locale: "en", limit: 20, excludedTemplateIDs: [] }, name, "keyword");
+    const page = await publicPage(
+      { locale: "en", language: "en", limit: 20, excludedTemplateIDs: [] },
+      name,
+      "keyword",
+    );
     assert.deepEqual(
       page.items.map((t) => t.templateID),
       [id],
