@@ -4,6 +4,7 @@ import { checkReadable, legacyDTO } from "@/lib/templates/access-service";
 import { language, text, type TemplateRow } from "@/lib/templates/contracts";
 import { rows } from "@/lib/templates/database";
 import { body, endpoint, json } from "@/lib/templates/http";
+import { templateLanguageAliases } from "@/lib/templates/languages";
 import { legacyURL } from "@/lib/templates/legacy-assets";
 import { requestLimit } from "@/lib/templates/routes";
 
@@ -29,15 +30,16 @@ export async function POST(req: Request) {
           .strict(),
       );
       const offset = (input.page - 1) * input.limit;
+      const languageAliases = templateLanguageAliases(input.language);
       const data = await rows<TemplateRow>(
         `SELECT * FROM template_records WHERE status=0 AND removed_at IS NULL
          AND ((contract_version=1 AND visibility IS NULL) OR (visibility='public' AND discovery_state='eligible'))
          AND (CASE WHEN contract_version=1 THEN expire_time IS NULL OR expire_time=0 OR expire_time>UNIX_TIMESTAMP()
               ELSE expires_at IS NULL OR expires_at>UTC_TIMESTAMP(3) END)
-         AND language=?
+         AND language IN (${languageAliases.map(() => "?").join(",")})
          AND (?='' OR LOCATE(LOWER(?),LOWER(watermark_name))>0 OR LOCATE(LOWER(?),LOWER(COALESCE(company_name,'')))>0)
          ORDER BY created_at DESC,id DESC LIMIT ${input.limit} OFFSET ${offset}`,
-        [input.language, input.keyword, input.keyword, input.keyword],
+        [...languageAliases, input.keyword, input.keyword, input.keyword],
       );
       const results = [];
       for (const t of data) {

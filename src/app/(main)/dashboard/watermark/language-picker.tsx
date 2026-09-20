@@ -5,13 +5,13 @@ import { useMemo, useState } from "react";
 import { Check, ChevronDown, Globe2, Search } from "lucide-react";
 
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import clientLocales from "@/lib/templates/client-locales.json";
+import { templateLanguageOptions } from "@/lib/templates/languages";
 
 const groupOrder = ["亚洲", "欧洲", "非洲", "北美洲", "南美洲", "大洋洲"];
-const languages = clientLocales.languages;
+const languages = templateLanguageOptions;
 
 function languageName(code: string) {
-  const item = languages.find((language) => language.code.toLowerCase() === code.toLowerCase());
+  const item = languages.find((language) => language.value === code.toLowerCase());
   return item ? `${item.name} (${item.code})` : code;
 }
 
@@ -99,12 +99,12 @@ export function LanguagePicker({ value, onChange }: { value: string; onChange: (
               </h3>
               <div className="grid grid-cols-2 gap-1 sm:grid-cols-3 md:grid-cols-4">
                 {group.languages.map((language) => {
-                  const selected = value.toLowerCase() === language.code.toLowerCase();
+                  const selected = value.toLowerCase() === language.value;
                   return (
                     <button
-                      key={language.code}
+                      key={language.value}
                       type="button"
-                      onClick={() => select(language.code)}
+                      onClick={() => select(language.value)}
                       aria-pressed={selected}
                       title={`${language.name} (${language.code})`}
                       className={`hover:bg-accent focus-visible:ring-ring flex min-w-0 items-center gap-2 rounded-md px-2 py-2.5 text-left text-sm focus-visible:ring-2 focus-visible:outline-none ${selected ? "bg-accent font-semibold" : ""}`}

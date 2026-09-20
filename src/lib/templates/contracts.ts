@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { canonicalTemplateLanguage } from "./languages";
 import { normalizeTrendingRegion } from "./trending-regions";
 
 export const PRIVATE_EXPIRY_SECONDS = 2_592_000;
@@ -22,7 +23,7 @@ export const language = z
   .string()
   .trim()
   .regex(/^[a-zA-Z]{2,8}(?:[-_][a-zA-Z0-9]{1,8})*$/)
-  .transform((value) => value.replaceAll("_", "-").toLowerCase());
+  .transform(canonicalTemplateLanguage);
 const url = z.string().url().max(2048);
 export const createSchema = z
   .object({

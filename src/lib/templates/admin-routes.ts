@@ -20,6 +20,7 @@ import {
 import { rows, write, transaction } from "./database";
 import { TemplateError } from "./errors";
 import { endpoint, json, body, privateHeaders } from "./http";
+import { templateLanguageAliases } from "./languages";
 import { fetchLegacy, legacyURL, snapshotForLegacyApproval } from "./legacy-assets";
 import { publish } from "./publish-service";
 import { cosObjectReference } from "./storage";
@@ -77,8 +78,9 @@ export async function adminRoute(req: Request, path: string[]) {
         if (q.has("language")) {
           const selectedLanguage = language.safeParse(q.get("language"));
           if (!selectedLanguage.success) throw new TemplateError("INVALID_REQUEST");
-          filter += " AND language=?";
-          values.push(selectedLanguage.data);
+          const aliases = templateLanguageAliases(selectedLanguage.data);
+          filter += ` AND language IN (${aliases.map(() => "?").join(",")})`;
+          values.push(...aliases);
         }
         if (q.has("status")) {
           const status = z.enum(["0", "-1"]).safeParse(q.get("status"));

@@ -8,6 +8,7 @@ import { apiOrigin, enabled, secret, shareOrigin } from "./config";
 import { listSchema, searchSchema, type TemplateRow } from "./contracts";
 import { canonical, equalSecret, sha256 } from "./crypto";
 import { TemplateError } from "./errors";
+import { templateLanguageAliases } from "./languages";
 import { rows, write, parseJSON } from "./repository";
 import { trendingRegionCandidates } from "./trending-regions";
 
@@ -61,6 +62,7 @@ export function cursorDecode(cursor: string, hash: string) {
 }
 export async function publicPage(input: z.infer<typeof listSchema>, query = "", kind = "popular") {
   const excluded = [...new Set(input.excludedTemplateIDs)].sort();
+  const languageAliases = templateLanguageAliases(input.language);
   const hash = sha256(canonical({ query, kind, language: input.language, limit: input.limit, excluded }));
   let id: string,
     ids: string[],
@@ -90,8 +92,8 @@ export async function publicPage(input: z.infer<typeof listSchema>, query = "", 
   while (offset < ids.length && items.length < input.limit) {
     const batch = ids.slice(offset, Math.min(offset + input.limit - items.length, ids.length));
     const data = await rows<TemplateRow>(
-      `SELECT * FROM template_records WHERE id IN (${batch.map(() => "?").join(",")}) AND visibility='public' AND discovery_state='eligible' AND language=?`,
-      [...batch, input.language],
+      `SELECT * FROM template_records WHERE id IN (${batch.map(() => "?").join(",")}) AND visibility='public' AND discovery_state='eligible' AND language IN (${languageAliases.map(() => "?").join(",")})`,
+      [...batch, ...languageAliases],
     );
     const records = new Map(data.map((t) => [t.id, t]));
     for (const candidate of batch) {
@@ -174,8 +176,9 @@ export async function discovery(input: z.infer<typeof listSchema>) {
 }
 
 export async function candidates(query: string, popular: boolean, excluded: string[], language = "en") {
-  const args: unknown[] = [language];
-  let filter = " AND language=?";
+  const languageAliases = templateLanguageAliases(language);
+  const args: unknown[] = [...languageAliases];
+  let filter = ` AND language IN (${languageAliases.map(() => "?").join(",")})`;
   if (excluded.length) {
     filter += ` AND CAST(id AS CHAR) NOT IN (${excluded.map(() => "?").join(",")})`;
     args.push(...excluded);

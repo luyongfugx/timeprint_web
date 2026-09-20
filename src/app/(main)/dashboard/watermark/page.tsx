@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { displayLanguageTag } from "@/lib/templates/languages";
 import { reportReasonLabel } from "@/lib/templates/report-reasons";
 
 import { AssetPreview } from "./asset-preview";
@@ -124,7 +125,7 @@ function WatermarkDetails({ row, onPreview }: { row: Row; onPreview: (row: Row, 
       <CoverPreview row={row} onOpen={() => onPreview(row, "cover")} />
       <div className="space-y-2 text-sm break-words">
         <p>公司名／创建者：{row.company_name?.trim() ? row.company_name : "未填写"}</p>
-        <p>语言：{row.language ?? "en"}</p>
+        <p>语言：{displayLanguageTag(row.language ?? "en")}</p>
         <p className="font-mono">code: {row.share_code}</p>
         <p className="text-sm">
           状态:{" "}
@@ -632,13 +633,16 @@ export default function Page() {
             <option value="public">公开</option>
             <option value="private">私密</option>
           </select>
-          <LanguagePicker
-            value={selectedLanguage}
-            onChange={(language) => {
-              setSelectedLanguage(language);
-              setPage(1);
-            }}
-          />
+          <div className="flex items-center gap-2 text-sm">
+            <span className="shrink-0">语言</span>
+            <LanguagePicker
+              value={selectedLanguage}
+              onChange={(language) => {
+                setSelectedLanguage(language);
+                setPage(1);
+              }}
+            />
+          </div>
           <button className={button} disabled={busy}>
             搜索
           </button>
