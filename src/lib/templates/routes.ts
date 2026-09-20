@@ -86,6 +86,7 @@ export async function v2Route(req: Request, path: string[]) {
       const q = new URL(req.url).searchParams;
       const input = listSchema.safeParse({
         locale: q.get("locale") ?? "en",
+        language: q.get("language") ?? q.get("locale") ?? "en",
         region: q.get("region") ?? undefined,
         limit: Number(q.get("limit") ?? 20),
         cursor: q.get("cursor"),

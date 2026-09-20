@@ -81,6 +81,7 @@ export async function detail(t: TemplateRow): Promise<TemplateDetail> {
     visibility: t.visibility,
     watermarkName: t.visibility === "private" ? "" : t.watermark_name,
     companyName: t.visibility === "private" ? "" : (t.company_name ?? ""),
+    language: t.language,
     shareCode: t.share_code,
     shareLink: `${shareOrigin()}/share?code=${encodeURIComponent(t.share_code)}`,
     cover: {
@@ -177,6 +178,7 @@ export async function legacyDTO(t: TemplateRow) {
     id: d.templateID,
     watermark_name: d.watermarkName,
     company_name: d.companyName,
+    language: d.language,
     cover_image_url: d.cover.url,
     json_download_url: d.payload.url,
     status: t.status,

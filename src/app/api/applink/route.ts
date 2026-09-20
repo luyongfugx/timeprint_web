@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import { z } from "zod";
 
-import { text } from "@/lib/templates/contracts";
+import { language, text } from "@/lib/templates/contracts";
 import { body, endpoint, json } from "@/lib/templates/http";
 import { logFailure } from "@/lib/templates/log";
 import { publish } from "@/lib/templates/publish-service";
@@ -38,6 +38,7 @@ export async function POST(req: Request) {
             jsonDownloadUrl: z.string().url().max(2048),
             status: z.literal(0).optional(),
             userId: z.string().min(1).max(128).optional(),
+            language: language.default("en"),
             expireType: z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3)]).default(0),
           })
           .strict(),
@@ -57,6 +58,7 @@ export async function POST(req: Request) {
             coverWidth: 1,
             coverHeight: 1,
             userID: input.userId ?? "legacy-anonymous",
+            language: input.language,
           },
           1,
           [0, 2_592_000, 86_400, 3_600][input.expireType],

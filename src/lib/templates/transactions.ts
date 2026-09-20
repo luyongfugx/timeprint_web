@@ -87,8 +87,14 @@ export async function publishTransaction(
       code = contract === 1 ? randomBytes(4).toString("hex").toUpperCase() : shareCode();
       try {
         await write(
-          `INSERT INTO watermarks_share_links (watermark_name,company_name,cover_image_url,json_download_url,status,created_at,user_id,share_code,expire_time,contract_version,visibility,discovery_state,cover_kind,cover_width,cover_height,payload_sha256,expires_at,actor_hash,cover_asset_id,payload_asset_id)
-          VALUES (?,?,?,?,0,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+          `INSERT INTO watermarks_share_links (watermark_name,company_name,cover_image_url,json_download_url,status,created_at,user_id,share_code,expire_time,contract_version,visibility,discovery_state,cover_kind,cover_width,cover_height,payload_sha256,expires_at,actor_hash,cover_asset_id,payload_asset_id,language)
+          VALUES (
+            ?,?,?,?,
+            0,?,?,?,?,
+            ?,?,?,?,
+            ?,?,?,?,
+            ?,?,?,?
+          )`,
           [
             input.visibility === "private" ? "" : input.watermarkName,
             input.visibility === "private" ? "" : input.companyName,
@@ -109,6 +115,7 @@ export async function publishTransaction(
             actor,
             s.cover_asset_id,
             s.payload_asset_id,
+            input.language,
           ],
           c,
         );

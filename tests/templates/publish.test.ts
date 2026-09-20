@@ -141,6 +141,7 @@ test("legacy and v2 publishing header compatibility", async (t) => {
     coverHeight: 1,
     coverImageURL: legacyBody.coverImageUrl,
     jsonDownloadURL: legacyBody.jsonDownloadUrl,
+    language: "en",
   };
   const request = (headers: Record<string, string> = {}) =>
     new Request("https://wm.timeprint.net/api/applink/v2/templates", { headers });

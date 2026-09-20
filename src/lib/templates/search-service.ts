@@ -61,7 +61,7 @@ export function cursorDecode(cursor: string, hash: string) {
 }
 export async function publicPage(input: z.infer<typeof listSchema>, query = "", kind = "popular") {
   const excluded = [...new Set(input.excludedTemplateIDs)].sort();
-  const hash = sha256(canonical({ query, kind, limit: input.limit, excluded }));
+  const hash = sha256(canonical({ query, kind, language: input.language, limit: input.limit, excluded }));
   let id: string,
     ids: string[],
     offset = 0;
@@ -78,7 +78,7 @@ export async function publicPage(input: z.infer<typeof listSchema>, query = "", 
     if (data.query_hash !== hash) throw new TemplateError("INVALID_REQUEST");
     ids = parseJSON(data.ordered_ids);
   } else {
-    ids = await candidates(query, kind === "popular", excluded);
+    ids = await candidates(query, kind === "popular", excluded, input.language);
     id = randomUUID();
     await write("INSERT INTO template_search_snapshots(id,query_hash,ordered_ids) VALUES (?,?,?)", [
       id,
@@ -90,8 +90,8 @@ export async function publicPage(input: z.infer<typeof listSchema>, query = "", 
   while (offset < ids.length && items.length < input.limit) {
     const batch = ids.slice(offset, Math.min(offset + input.limit - items.length, ids.length));
     const data = await rows<TemplateRow>(
-      `SELECT * FROM template_records WHERE id IN (${batch.map(() => "?").join(",")}) AND visibility='public' AND discovery_state='eligible'`,
-      batch,
+      `SELECT * FROM template_records WHERE id IN (${batch.map(() => "?").join(",")}) AND visibility='public' AND discovery_state='eligible' AND language=?`,
+      [...batch, input.language],
     );
     const records = new Map(data.map((t) => [t.id, t]));
     for (const candidate of batch) {
@@ -173,9 +173,9 @@ export async function discovery(input: z.infer<typeof listSchema>) {
   };
 }
 
-export async function candidates(query: string, popular: boolean, excluded: string[]) {
-  const args: unknown[] = [];
-  let filter = "";
+export async function candidates(query: string, popular: boolean, excluded: string[], language = "en") {
+  const args: unknown[] = [language];
+  let filter = " AND language=?";
   if (excluded.length) {
     filter += ` AND CAST(id AS CHAR) NOT IN (${excluded.map(() => "?").join(",")})`;
     args.push(...excluded);

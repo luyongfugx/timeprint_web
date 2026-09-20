@@ -173,6 +173,7 @@ model watermarks_share_links {
   company_name              String?                     @db.VarChar(100)
   cover_image_url           String                      @db.Text
   json_download_url         String                      @db.Text
+  language                  String                      @default("en") @db.VarChar(35)
   status                    Int                         @default(0)
   created_at                DateTime                    @default(dbgenerated("(utc_timestamp(3))"))
   user_id                   String?                     @db.VarChar(128)
@@ -204,6 +205,7 @@ model watermarks_share_links {
 
   @@index([expires_at], map: "template_expiry")
   @@index([visibility, discovery_state, status, use_count, created_at, id], map: "template_public_order")
+  @@index([language, visibility, discovery_state, status, use_count, created_at, id], map: "template_language_public_order")
 }
 
 model admin_accounts {

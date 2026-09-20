@@ -18,6 +18,11 @@ export const identifier = z
   .max(128)
   .regex(/^[a-zA-Z0-9_-]+$/);
 export const visibility = z.enum(["public", "private"]);
+export const language = z
+  .string()
+  .trim()
+  .regex(/^[a-zA-Z]{2,8}(?:[-_][a-zA-Z0-9]{1,8})*$/)
+  .transform((value) => value.replaceAll("_", "-").toLowerCase());
 const url = z.string().url().max(2048);
 export const createSchema = z
   .object({
@@ -32,6 +37,7 @@ export const createSchema = z
     coverWidth: z.number().int().positive(),
     coverHeight: z.number().int().positive(),
     userID: uuid,
+    language: language.default("en"),
     expiresInSeconds: z.number().nullable().optional(),
   })
   .strict()
@@ -75,6 +81,7 @@ export const listSchema = z.object({
     .string()
     .regex(/^[a-zA-Z0-9-]{2,35}$/)
     .default("en"),
+  language: language.default("en"),
   limit: z.number().int().min(1).max(50).default(20),
   cursor: z.string().max(2048).nullable().optional(),
   excludedTemplateIDs: z.array(identifier).max(100).default([]),
@@ -143,6 +150,7 @@ export type TemplateRow = {
   content_version: number;
   cover_image_url: string;
   json_download_url: string;
+  language: string;
 };
 export type TemplateDetail = {
   contractVersion: 2;
@@ -151,6 +159,7 @@ export type TemplateDetail = {
   visibility: "public" | "private" | null;
   watermarkName: string;
   companyName: string;
+  language: string;
   shareCode: string;
   shareLink: string;
   cover: { kind: "watermark" | "photo"; url: string; thumbnailURL: string; width: number; height: number };

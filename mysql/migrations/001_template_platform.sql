@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS watermarks_share_links (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 ALTER TABLE watermarks_share_links
+ ADD COLUMN language VARCHAR(35) NOT NULL DEFAULT 'en',
  ADD COLUMN contract_version SMALLINT NOT NULL DEFAULT 1,
  ADD COLUMN visibility VARCHAR(10) NULL,
  ADD COLUMN discovery_state VARCHAR(10) NOT NULL DEFAULT 'held',
@@ -27,6 +28,7 @@ ALTER TABLE watermarks_share_links
  ADD COLUMN normalized_share_code VARCHAR(10) CHARACTER SET ascii COLLATE ascii_bin GENERATED ALWAYS AS (UPPER(share_code)) STORED,
  ADD UNIQUE KEY template_share_code_unique (normalized_share_code),
  ADD KEY template_public_order (visibility,discovery_state,status,use_count,created_at,id),
+ ADD KEY template_language_public_order (language,visibility,discovery_state,status,use_count,created_at,id),
  ADD KEY template_expiry (expires_at),
  ADD CONSTRAINT template_visibility CHECK (visibility IS NULL OR visibility IN ('public','private')),
  ADD CONSTRAINT template_discovery CHECK (discovery_state IN ('eligible','held')),
@@ -83,5 +85,5 @@ CREATE TABLE template_trending_terms(id CHAR(36) PRIMARY KEY,term VARCHAR(100) N
 CREATE TABLE template_admins(user_id CHAR(36) PRIMARY KEY,enabled BOOLEAN NOT NULL DEFAULT TRUE,role VARCHAR(16) NOT NULL,CHECK(role IN ('admin','moderator'))) ENGINE=InnoDB;
 CREATE TABLE template_moderation_actions(id CHAR(36) PRIMARY KEY,template_id VARCHAR(128) NULL,report_id CHAR(36) NULL,request_id CHAR(36) NULL,admin_user_id CHAR(36) NOT NULL,action VARCHAR(32) NOT NULL,reason TEXT NOT NULL,before_state JSON NULL,after_state JSON NULL,created_at DATETIME(3) NOT NULL DEFAULT (UTC_TIMESTAMP(3))) ENGINE=InnoDB;
 CREATE TABLE template_rate_limits(`key` CHAR(64) NOT NULL,action VARCHAR(32) NOT NULL,window_start BIGINT NOT NULL,count INT NOT NULL,PRIMARY KEY(`key`,action,window_start)) ENGINE=InnoDB;
-CREATE VIEW template_records AS SELECT CAST(id AS CHAR) AS id,contract_version,visibility,discovery_state,watermark_name,company_name,share_code,status,created_at,updated_at,expires_at,expire_time,removed_at,cover_kind,cover_width,cover_height,cover_asset_id,payload_asset_id,use_count,payload_schema_version,content_version,cover_image_url,json_download_url FROM watermarks_share_links;
+CREATE VIEW template_records AS SELECT CAST(id AS CHAR) AS id,contract_version,visibility,discovery_state,watermark_name,company_name,share_code,status,created_at,updated_at,expires_at,expire_time,removed_at,cover_kind,cover_width,cover_height,cover_asset_id,payload_asset_id,use_count,payload_schema_version,content_version,cover_image_url,json_download_url,language FROM watermarks_share_links;
 CREATE VIEW template_asset_records AS SELECT id,upload_session_id,CAST(template_id AS CHAR) AS template_id,request_id,client_asset_id,kind,object_key,sealed_key,mime,bytes,width,height,sha256,sealed_sha256,state,created_at FROM template_assets;
