@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { reportReasonLabel } from "@/lib/templates/report-reasons";
 
 import { AssetPreview } from "./asset-preview";
+import { LanguagePicker } from "./language-picker";
 import { TrendingEditors } from "./trending-editors";
 
 type Row = {
@@ -17,6 +18,7 @@ type Row = {
   contract_version?: number;
   watermark_name?: string;
   company_name?: string;
+  language?: string;
   visibility?: string | null;
   status: number | string;
   updated_at?: string;
@@ -122,6 +124,7 @@ function WatermarkDetails({ row, onPreview }: { row: Row; onPreview: (row: Row, 
       <CoverPreview row={row} onOpen={() => onPreview(row, "cover")} />
       <div className="space-y-2 text-sm break-words">
         <p>公司名／创建者：{row.company_name?.trim() ? row.company_name : "未填写"}</p>
+        <p>语言：{row.language ?? "en"}</p>
         <p className="font-mono">code: {row.share_code}</p>
         <p className="text-sm">
           状态:{" "}
@@ -174,6 +177,7 @@ export default function Page() {
     [jumpPage, setJumpPage] = useState(""),
     [query, setQuery] = useState(""),
     [filter, setFilter] = useState(""),
+    [selectedLanguage, setSelectedLanguage] = useState(""),
     [submittedQuery, setSubmittedQuery] = useState("");
   const [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
@@ -330,6 +334,7 @@ export default function Page() {
     setRows([]);
     const params = new URLSearchParams({ page: String(page), pageSize: String(pageSize), query: submittedQuery });
     if (filter && tab === "templates") params.set("visibility", filter);
+    if (selectedLanguage && tab === "templates") params.set("language", selectedLanguage);
     fetch(`/api/admin/templates${tab === "templates" ? "" : `/${tab}`}?${params}`, {
       cache: "no-store",
       signal: controller.signal,
@@ -356,7 +361,7 @@ export default function Page() {
         if (!controller.signal.aborted) setBusy(false);
       });
     return () => controller.abort();
-  }, [tab, page, pageSize, submittedQuery, filter, revision]);
+  }, [tab, page, pageSize, submittedQuery, filter, selectedLanguage, revision]);
   const totalPages = Math.min(10000, Math.max(1, Math.ceil(total / pageSize)));
   const button = "rounded-lg border px-3 py-2 text-sm disabled:opacity-40";
   return (
@@ -627,6 +632,13 @@ export default function Page() {
             <option value="public">公开</option>
             <option value="private">私密</option>
           </select>
+          <LanguagePicker
+            value={selectedLanguage}
+            onChange={(language) => {
+              setSelectedLanguage(language);
+              setPage(1);
+            }}
+          />
           <button className={button} disabled={busy}>
             搜索
           </button>

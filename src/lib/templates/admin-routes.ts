@@ -14,6 +14,7 @@ import {
   MAX_IMAGE_BYTES,
   MAX_PAYLOAD_BYTES,
   identifier,
+  language,
   type TemplateRow,
 } from "./contracts";
 import { rows, write, transaction } from "./database";
@@ -72,6 +73,12 @@ export async function adminRoute(req: Request, path: string[]) {
           if (!v.success) throw new TemplateError("INVALID_REQUEST");
           filter += v.data === "legacy" ? " AND visibility IS NULL" : " AND visibility=?";
           if (v.data !== "legacy") values.push(v.data);
+        }
+        if (q.has("language")) {
+          const selectedLanguage = language.safeParse(q.get("language"));
+          if (!selectedLanguage.success) throw new TemplateError("INVALID_REQUEST");
+          filter += " AND language=?";
+          values.push(selectedLanguage.data);
         }
         if (q.has("status")) {
           const status = z.enum(["0", "-1"]).safeParse(q.get("status"));
