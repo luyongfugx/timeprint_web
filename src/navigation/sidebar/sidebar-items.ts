@@ -1,4 +1,4 @@
-import { ImageMinus, type LucideIcon } from "lucide-react";
+import { ClipboardList, ImageMinus, type LucideIcon } from "lucide-react";
 
 export interface NavSubItem {
   title: string;
@@ -26,5 +26,12 @@ export interface NavGroup {
 }
 
 export const sidebarItems: NavGroup[] = [
-  { id: 1, label: "Timeprint", items: [{ title: "Watermarks", url: "/dashboard/watermark", icon: ImageMinus }] },
+  {
+    id: 1,
+    label: "Timeprint",
+    items: [
+      { title: "Watermarks", url: "/dashboard/watermark", icon: ImageMinus },
+      { title: "错误日志 Review", url: "/dashboard/error-reviews", icon: ClipboardList },
+    ],
+  },
 ];

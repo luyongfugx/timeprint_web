@@ -41,3 +41,6 @@ next-env.d.ts
 
 # Isolated build/preview outputs
 .next-timeprint-*/
+
+# Local review drafts contain private diagnostic references
+.error-reviews/

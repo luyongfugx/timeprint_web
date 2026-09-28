@@ -228,3 +228,46 @@ model admin_sessions {
 
   @@index([expires_at], map: "admin_session_expiry")
 }
+
+model error_review_runs {
+  id String @id @db.Char(36)
+  review_date String @db.Char(10)
+  payload_hash String @db.Char(64)
+  summary String @db.Text
+  payload Json
+  created_by String @db.VarChar(100)
+  created_at DateTime @default(dbgenerated("(utc_timestamp(3))")) @db.DateTime(3)
+  @@index([review_date, created_at], map: "review_date_idx")
+}
+model error_review_issues {
+  id String @id @db.Char(64)
+  platform String @db.VarChar(10)
+  title String @db.VarChar(180)
+  priority String @db.VarChar(2)
+  status String @default("new") @db.VarChar(20)
+  owner String @default("") @db.VarChar(100)
+  fix_version String @default("") @db.VarChar(100)
+  fix_link String @default("") @db.VarChar(500)
+  first_seen String @db.Char(10)
+  last_seen String @db.Char(10)
+  version Int @default(1)
+  updated_at DateTime @default(dbgenerated("(utc_timestamp(3))")) @db.DateTime(3)
+  @@index([status, last_seen], map: "issue_status_idx")
+}
+model error_review_findings {
+  run_id String @db.Char(36)
+  issue_id String @db.Char(64)
+  detail Json
+  @@id([run_id, issue_id])
+  @@index([issue_id], map: "finding_issue_idx")
+}
+model error_review_actions {
+  id String @id @db.Char(36)
+  issue_id String @db.Char(64)
+  actor String @db.VarChar(100)
+  note String @db.Text
+  before_state Json?
+  after_state Json
+  created_at DateTime @default(dbgenerated("(utc_timestamp(3))")) @db.DateTime(3)
+  @@index([issue_id, created_at], map: "action_issue_idx")
+}

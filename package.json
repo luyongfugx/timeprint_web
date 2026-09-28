@@ -22,7 +22,11 @@
     "prisma:studio": "node --env-file-if-exists=.env.local scripts/prisma.mjs studio",
     "admin:init": "node --env-file-if-exists=.env.local scripts/migrate-admin-login.mjs",
     "test:admin": "node --conditions=react-server --import tsx --test tests/templates/admin-auth.test.ts",
-    "test:storage": "node --conditions=react-server --import tsx --test tests/templates/storage.test.ts"
+    "test:storage": "node --conditions=react-server --import tsx --test tests/templates/storage.test.ts",
+    "test:error-reviews": "node --conditions=react-server --import tsx --test tests/error-reviews/*.test.ts",
+    "error-reviews:migrate": "node --env-file-if-exists=.env.local scripts/migrate-error-reviews.mjs",
+    "error-reviews:collect": "node --env-file-if-exists=.env.local --import tsx scripts/review-error-logs.ts",
+    "error-reviews:publish": "node --env-file-if-exists=.env.local --import tsx scripts/publish-error-review.ts"
   },
   "lint-staged": {
     "*.{js,ts,jsx,tsx}": [
