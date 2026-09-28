@@ -44,7 +44,16 @@ export function normalizeFirebaseEvent(
   const e = schema.parse(input);
   const window = reviewWindow(date);
   const at = Date.parse(e.eventTime);
-  if (e.platform.toLowerCase() !== platform || !e.name.startsWith(appResource + "/events/") || !Number.isFinite(at))
+  const configured = /^projects\/([\w-]+)\/apps\/(1:(\d+):(android|ios):[\w-]+)$/.exec(appResource);
+  const actual = /^projects\/([\w-]+)\/apps\/(1:(\d+):(android|ios):[\w-]+)\/events\/[\w:-]+$/.exec(e.name);
+  // Firebase may canonicalize a project ID to the project number embedded in its app ID.
+  const matchesSource =
+    configured &&
+    actual &&
+    actual[2] === configured[2] &&
+    configured[4] === platform &&
+    (actual[1] === configured[1] || actual[1] === configured[3]);
+  if (e.platform.toLowerCase() !== platform || !matchesSource || !Number.isFinite(at))
     throw new Error("Firebase event source mismatch");
   if (at < Date.parse(window.start) || at >= Date.parse(window.end)) return null;
   const sha = (s: string) => createHash("sha256").update(s).digest("hex");

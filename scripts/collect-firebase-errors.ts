@@ -67,23 +67,51 @@ async function main() {
     }
     const limit = Math.floor(max / 3) + (index < max % 3 ? 1 : 0);
     try {
-      const data = await client(resource + "/events", {
-        pageSize: String(limit),
+      const filters = {
         "filter.interval.startTime": report.window.start,
         "filter.interval.endTime": report.window.end,
         "filter.issue.errorTypes": task.type,
-        readMask:
-          "name,eventTime,platform,issue,installationUuid,sessionId,version,device,operatingSystem,threads,exceptions",
-      });
-      if (!Array.isArray(data.events) && data.events !== undefined) throw new Error("Invalid events response");
-      const events = data.events ?? [];
-      c.listed += events.length;
-      c.downloaded += events.length;
-      if (data.nextPageToken || events.length > limit) {
+      };
+      const summary = await client(resource + "/reports/topIssues", { ...filters, pageSize: String(limit) });
+      if (summary.groups !== undefined && !Array.isArray(summary.groups)) throw new Error("Invalid issue response");
+      const groups = summary.groups ?? [];
+      if (summary.nextPageToken || groups.length > limit) {
         c.limited = true;
         c.listingComplete = false;
       }
-      c.notes.push(`${task.type} 按时间倒序最多 ${limit} 份；listed 仅为返回事件数，不是 Firebase 总量。`);
+      const events: unknown[] = [];
+      for (const group of groups.slice(0, limit)) {
+        const issueId = group.issue?.id;
+        if (typeof issueId !== "string" || !issueId) {
+          c.unparsed++;
+          c.listingComplete = false;
+          continue;
+        }
+        try {
+          const data = await client(resource + "/events", {
+            ...filters,
+            pageSize: "1",
+            "filter.issue.id": issueId,
+            readMask:
+              "name,eventTime,platform,issue,installationUuid,sessionId,version,device,operatingSystem,threads,exceptions",
+          });
+          if (!Array.isArray(data.events) && data.events !== undefined) throw new Error("Invalid events response");
+          const rows = data.events ?? [];
+          c.listed += rows.length;
+          c.downloaded += rows.length;
+          if (data.nextPageToken || rows.length > 1) {
+            c.limited = true;
+            c.listingComplete = false;
+          }
+          events.push(...rows.slice(0, 1));
+        } catch {
+          c.failed++;
+          c.listingComplete = false;
+        }
+      }
+      c.notes.push(
+        `${task.type} 最多 ${limit} 个 issue，每个取窗口内最新 1 份；listed 仅为返回事件数，不是 Firebase 总量。`,
+      );
       for (const raw of events.slice(0, limit)) {
         try {
           const e = normalizeFirebaseEvent(raw, task.platform, resource, report.date, key);
