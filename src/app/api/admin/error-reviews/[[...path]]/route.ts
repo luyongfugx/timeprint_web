@@ -14,7 +14,7 @@ async function handle(req: Request, context: Context) {
   return endpoint(
     req,
     async () => {
-      const actor = await reviewAuth(req, req.method === "PATCH");
+      const actor = await reviewAuth(req);
       const path = (await context.params).path ?? [];
       const q = new URL(req.url).searchParams;
       try {

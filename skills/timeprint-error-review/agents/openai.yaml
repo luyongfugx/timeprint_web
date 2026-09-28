@@ -1,4 +1,4 @@
 interface:
   display_name: "Timeprint 双端错误日志 Review"
-  short_description: "手动分析昨日 iOS 与 Android 错误日志，发布可追踪日报并维护问题台账"
-  default_prompt: "使用 $timeprint-error-review 分析昨日双端错误日志，并把日报发布到 timeprint_web。"
+  short_description: "分析昨日双端错误日志，修复对应客户端代码并自动同步日报及问题处理状态"
+  default_prompt: "使用 $timeprint-error-review 分析昨日双端错误日志，修复对应客户端代码，并将日报和代码修复状态同步到 timeprint_web。"

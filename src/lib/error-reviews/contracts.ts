@@ -4,7 +4,7 @@ export const statusLabels = {
   new: "新发现",
   investigating: "待定位",
   diagnosed: "已定位",
-  fixed: "已修复待发布",
+  fixed: "代码已修复",
   verifying: "已发布待验证",
   closed: "已关闭",
   ignored: "已忽略",
@@ -134,14 +134,14 @@ export const updateSchema = z
   })
   .strict()
   .superRefine((u, ctx) => {
-    if (["fixed", "verifying", "closed"].includes(u.status) && !u.fixVersion)
+    if (["verifying", "closed"].includes(u.status) && !u.fixVersion)
       ctx.addIssue({ code: "custom", message: "修复、验证、关闭时需要填写修复版本" });
   });
 export const transitions: Record<IssueStatus, IssueStatus[]> = {
   new: ["investigating", "diagnosed", "ignored"],
   investigating: ["diagnosed", "ignored"],
   diagnosed: ["investigating", "fixed", "ignored"],
-  fixed: ["investigating", "verifying"],
+  fixed: ["investigating"],
   verifying: ["investigating", "closed"],
   closed: ["investigating"],
   ignored: ["investigating"],

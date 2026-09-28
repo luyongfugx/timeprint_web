@@ -338,8 +338,7 @@ function ReviewPage() {
             </label>
           </div>
           <p className="text-muted-foreground text-sm">
-            新发现 → 待定位 → 已定位 → 已修复待发布 → 已发布待验证 →
-            已关闭。每次变更填写原因；关闭前填写修复版本和验证依据。复发时改回“待定位”。
+            新发现 → 待定位 → 已定位 → 代码已修复。完成代码修改即可标记修复，填写修改位置及原因；复发时改回“待定位”。
           </p>
           <div className="overflow-x-auto rounded-lg border">
             <table className="w-full text-left text-sm">
@@ -489,7 +488,7 @@ function IssueEditor({ issue, onSaved }: { issue: Issue; onSaved: () => void }) 
             className={`${control} mt-1 w-full`}
             maxLength={100}
             value={fixVersion}
-            required={["fixed", "verifying", "closed"].includes(status)}
+            required={["verifying", "closed"].includes(status)}
             onChange={(e) => setFixVersion(e.target.value)}
           />
         </label>
@@ -523,7 +522,7 @@ function IssueEditor({ issue, onSaved }: { issue: Issue; onSaved: () => void }) 
       <button className={button} disabled={saving}>
         {saving ? "正在保存…" : "保存状态变更"}
       </button>
-      <span className="text-muted-foreground ml-3 text-xs">仅管理员可保存；所有变更均留痕。</span>
+      <span className="text-muted-foreground ml-3 text-xs">管理员或 Review 技能可维护；所有变更均留痕。</span>
     </form>
   );
 }

@@ -69,7 +69,7 @@ test("workflow requires diagnosis, release verification and recorded reasons", (
       .success,
   );
   assert.ok(
-    !updateSchema.safeParse({ version: 1, status: "fixed", note: "done", owner: "a", fixVersion: "", fixLink: "" })
+    updateSchema.safeParse({ version: 1, status: "fixed", note: "done", owner: "a", fixVersion: "", fixLink: "" })
       .success,
   );
 });

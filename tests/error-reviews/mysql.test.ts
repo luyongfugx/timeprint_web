@@ -60,7 +60,7 @@ test(
   },
 );
 test(
-  "API rejects anonymous access, invalid service tokens and service-token workflow changes",
+  "API rejects invalid credentials and audits token workflow updates with optimistic locking",
   { skip: !active },
   async () => {
     process.env.ERROR_REVIEW_API_TOKEN = "test-service-token-with-at-least-32-characters";
@@ -71,6 +71,7 @@ test(
     const headers = {
       authorization: `Bearer ${process.env.ERROR_REVIEW_API_TOKEN}`,
       "content-type": "application/json",
+      "x-review-git-operator": encodeURIComponent(JSON.stringify({ name: "测试开发者", email: "dev@example.test" })),
     };
     const report = fixture();
     assert.equal(
@@ -79,6 +80,26 @@ test(
     );
     assert.equal((await GET(new Request(url, { headers }), context)).status, 200);
     const patchContext = { params: Promise.resolve({ path: ["issues", report.findings[0].fingerprint] }) };
-    assert.equal((await PATCH(new Request(url, { method: "PATCH", headers, body: "{}" }), patchContext)).status, 401);
+    assert.equal((await PATCH(new Request(url, { method: "PATCH", headers, body: "{}" }), patchContext)).status, 400);
+    const change = {
+      version: 1,
+      status: "investigating",
+      owner: "Codex",
+      fixVersion: "",
+      fixLink: "",
+      note: "Review evidence, begin diagnosis",
+    };
+    const send = (authorization: string) =>
+      PATCH(
+        new Request(url, { method: "PATCH", headers: { ...headers, authorization }, body: JSON.stringify(change) }),
+        patchContext,
+      );
+    assert.equal((await send("Bearer invalid")).status, 401);
+    assert.equal((await send(headers.authorization)).status, 200);
+    assert.equal((await send(headers.authorization)).status, 409);
+    const history = await issueHistory(report.findings[0].fingerprint);
+    assert.equal(history.issue.status, "investigating");
+    assert.equal(history.actions[0].note, change.note);
+    assert.equal(history.actions[0].actor, "git:测试开发者 <dev@example.test>");
   },
 );

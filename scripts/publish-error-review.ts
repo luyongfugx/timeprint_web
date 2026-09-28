@@ -2,6 +2,8 @@ import { readFile } from "node:fs/promises";
 
 import { reviewSchema } from "../src/lib/error-reviews/contracts";
 
+import { gitOperatorFromArgs } from "./lib/review-git-operator";
+
 async function main() {
   const file = process.argv[2];
   if (!file) throw new Error("Usage: error-reviews:publish -- path/to/review.json [--validate]");
@@ -12,6 +14,7 @@ async function main() {
     console.log(`Validated ${report.date}: ${report.evidence.length} samples, ${report.findings.length} findings.`);
     return;
   }
+  const operator = gitOperatorFromArgs();
   const origin = process.env.ERROR_REVIEW_WEB_ORIGIN;
   const token = process.env.ERROR_REVIEW_API_TOKEN;
   if (!origin || !token || token.length < 32)
@@ -24,7 +27,7 @@ async function main() {
   const res = await fetch(url, {
     method: "POST",
     redirect: "error",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, ...operator.headers },
     body: JSON.stringify(report),
     signal: AbortSignal.timeout(60000),
   });
