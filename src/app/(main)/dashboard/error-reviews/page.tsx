@@ -209,6 +209,20 @@ function ReviewPage() {
             <section className="space-y-5 rounded-lg border p-5">
               <div>
                 <h2 className="text-xl font-semibold">{detail.report.date} 日报</h2>
+                {detail.report.firebaseCoverage && (
+                  <div className="mt-3 text-sm">
+                    {(["android", "ios"] as const).map((p) => {
+                      const c = detail.report.firebaseCoverage![p];
+                      return (
+                        <p key={p}>
+                          Firebase {p}：下载 {c.downloaded} · 失败请求 {c.failed} ·{" "}
+                          {c.listingComplete ? "本次请求完成" : "存在采集缺口"} ·{" "}
+                          {c.limited ? "有限抽样" : "无分页截断"} {c.notes.join("；")}
+                        </p>
+                      );
+                    })}
+                  </div>
+                )}
                 <p className="text-muted-foreground mt-1 text-xs">
                   每份日报保留原始分析快照；下方处理状态显示当前台账状态。
                 </p>
@@ -217,7 +231,7 @@ function ReviewPage() {
               <div className="grid gap-3 md:grid-cols-2">
                 {(["android", "ios"] as const).map((p) => {
                   const c = detail.report.coverage[p];
-                  const records = detail.report.evidence.filter((e) => e.platform === p);
+                  const records = detail.report.evidence.filter((e) => e.platform === p && e.source !== "firebase");
                   return (
                     <div key={p} className="bg-muted rounded-md p-4 text-sm">
                       <strong>{p === "ios" ? "iOS" : "Android"}</strong>
@@ -278,7 +292,7 @@ function ReviewPage() {
                       </p>
                     )}
                     <details>
-                      <summary className="cursor-pointer text-sm">查看证据与 COS 定位信息（{evidence.length}）</summary>
+                      <summary className="cursor-pointer text-sm">查看证据与来源定位信息（{evidence.length}）</summary>
                       <div className="mt-2 space-y-3">
                         {evidence.map((e) => (
                           <div key={e.id} className="bg-muted rounded p-3 text-xs">
@@ -286,7 +300,9 @@ function ReviewPage() {
                               {time(e.at)} · {e.timeBasis === "event" ? "事件时间" : "上传时间（事件时间未知）"} ·{" "}
                               {e.version} · {e.model} · {e.os}
                             </p>
-                            <p className="mt-1 font-mono break-all">{e.objectKey}</p>
+                            <p className="mt-1 font-mono break-all">
+                              {e.source === "firebase" ? "Firebase" : "COS"} · {e.objectKey}
+                            </p>
                             <p className="mt-2">{e.summary}</p>
                             <pre className="mt-2 overflow-x-auto break-all whitespace-pre-wrap">{e.stack}</pre>
                             <pre className="mt-2 whitespace-pre-wrap">{JSON.stringify(e.diagnostics, null, 2)}</pre>

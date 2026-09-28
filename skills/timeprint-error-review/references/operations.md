@@ -1,48 +1,38 @@
-# 运行与配置
+# 修复与状态同步
 
-## 平台
+用户调用技能授权分析、登记日报和按明确决定维护台账；客户端代码修改需要用户先选择修复问题并确认分支。先读项目 AGENTS.md、git status、分支和已有修改，保留用户工作；只改当前问题相关代码，不自动提交、push 或部署。
 
-- 页面：`<ERROR_REVIEW_WEB_ORIGIN>/dashboard/error-reviews`，登录原有管理员账户。
-- API：`/api/admin/error-reviews`。GET 列表支持 `?date=YYYY-MM-DD`；GET `/:runId` 返回日报与当前台账；GET `/issues?status=&platform=&page=1` 返回台账；GET `/issues/:fingerprint` 返回状态与出现历史。
-- 技能调用 API 使用 `Authorization: Bearer <ERROR_REVIEW_API_TOKEN>`；此 token 可读取、发布日报及 PATCH 问题状态，变更操作者记录为 git:用户名 <邮箱>。管理员会话仍校验管理后台 Origin。两种入口都要求 version 和变更原因。
-- Publish 脚本超时 60 秒，禁止重定向以免凭证泄漏。发布失败保持文件与 runId，再重试同一内容。
+**修改任何客户端代码前，必须询问用户是否在对应项目当前分支修改。** 明确展示项目名、当前分支和基线 commit；双端需要改动时在一次提问中分别列出两个项目。等待明确答复期间继续只读排查，不编辑客户端代码，不默认创建分支或 worktree。用户要求新分支则确认/使用指定分支后再改；detached HEAD 时明确说明并请用户指定目标分支。用户在本轮已确认的同一项目同一分支无需重复询问；每轮首次准备修复时确认，若分支随后改变需重新确认。开始编辑前再次读取分支，确保与已确认目标一致。按样本平台选仓库；共享机制的双端缺陷分别核对，不机械复制实现。
 
-## 环境（web 的 .env.local 或当前进程，绝不提交）
 
-- `ERROR_REVIEW_COS_SECRET_ID` / `ERROR_REVIEW_COS_SECRET_KEY`：只读日志目录权限；临时凭证可设 `ERROR_REVIEW_COS_SESSION_TOKEN`。不从客户端源码提取内置密钥。
-- `ERROR_REVIEW_HASH_KEY`：至少 32 字符随机固定密钥，为设备/会话生成稳定 HMAC；不要每日更换，否则跨日去重失效。
-- Android 默认桶 `timeprintandroid-1330977225`、iOS 默认桶 `tplog-1330977225`，默认 region `ap-singapore`；可用 `ERROR_REVIEW_ANDROID_BUCKET/REGION`、`ERROR_REVIEW_IOS_BUCKET/REGION` 覆盖。
-- `ERROR_REVIEW_WEB_ORIGIN`：已有 timeprint_web 部署地址（HTTPS；仅本地允许 HTTP）。
-- `ERROR_REVIEW_API_TOKEN`：至少 32 字符随机密钥，发布端与 web 服务端一致。不要复用 COS 密钥。平台导入 JSON 不需要此 token。
+## 先选择修复范围
 
-## 首次平台安装（仅尚未安装时）
+日报登记后、任何客户端修改前，展示本轮完整问题清单，按优先级排列。每项给出稳定编号（如 A1 / I1）、平台、来源（COS / Firebase crash / Firebase ANR）、错误名称、影响/证据是否充分、样本/设备数、涉及版本、当前台账状态，以及简短修复建议/预计改动范围。用表格简洁呈现，不展开重复堆栈。编号与完整问题指纹、日报 runId 的映射保存至本轮忽略目录，后续回复按映射解析，不随排序改变编号。相似症状可分组展示，但必须列清对应编号和指纹，避免用户只选择一项却扩大范围。
 
-代码维护在 timeprint_web。现有 MySQL 配置沿用项目 DB 配置。`npm run error-reviews:migrate` 仅预览；确认部署目标后 `npm run error-reviews:migrate -- --apply` 增加四张表，不改旧表。普通每日 review 不执行迁移、不自行部署。没有表或服务不可用时保留本地日报并明确报错。
+明确询问用户选择哪些修复、哪些暂不修复、哪些忽略；允许自然语言或编号，例如“修复 A1、I2；A3 暂不修复；I4 忽略，原因是预期系统告警”。可以提供“修复全部/只修复 P1/按编号选择”等便捷选项，但默认选项或未回复都不是授权。同时列出两个项目当前分支供确认，减少反复提问。提问依据是用户明确要求“先列出错误让我选择”和“改代码前确认分支”，不需要额外审批流程。
 
-## 示例
+- **修复**：仅用户明确选中且已确认分支的条目进入下方闭环。用户明确选择全部或某优先级时按已展示清单解析；本轮已有明确范围不重复询问。新发现的其他问题再次列出，不顺带修复。
+- **暂不修复 / 不修 / 未选择**：不编辑相关代码，保留当前台账状态。明确暂缓的，用相同状态新增处理记录“用户本轮暂不修复”并保留用户给出的原因；未回复/未选中的不伪造选择记录，也不自动标已忽略或已修复。含糊的“不用修”默认仅表示本轮暂缓。
+- **忽略**：只有用户明确要求忽略才设 ignored，原因记录用户决定和已提供的依据，不杜撰原因；若当前状态不允许该迁移，先说明限制并确认处理方式，不能为绕过状态机先伪造回退。
 
-```sh
-cd /Users/waynelu/timeprint_web
-npm run error-reviews:collect -- --max-samples 50
-# 输出 directory 后，对其中 review.json 分析补齐；不直接发布待分析草稿。
-npm run error-reviews:publish -- .error-reviews/<date>/<run>/review.json --validate
-npm run error-reviews:publish -- .error-reviews/<date>/<run>/review.json
-# 明确指定已结束的历史日期
-npm run error-reviews:collect -- --date 2026-09-27 --max-samples 100
-```
+等待选择或分支确认时可继续只读分析，但不改客户端代码。没有选择时停止在清单和待回复问题；不要自动将全部问题推进待定位。普通复查保留历史忽略决定，除非用户重新选中或有新证据需要重新询问。
 
-获取既有台账时使用项目 Node 脚本读取环境、通过 fetch 添加 Authorization，并仅输出业务响应；不要把 token 拼入终端命令、URL 或日志。平台已有问题数量较多时按页读取，并记录读取范围。
+## 每个已选问题的闭环
 
-## 自动维护状态
+1. 用户选中该问题且分支确认后，读取问题详情/历史，保留负责人、修复版本和链接。新发现先设 investigating（待定位），原因关联日报 runId、样本指纹和排查计划；尚未获分支确认时写明“等待修改分支确认”，不得写成已开始改代码；负责人为空可填 Codex。
+2. 对比样本版本、对应源码/mapping 和当前实现。具备根因证据设 diagnosed（已定位），写明调用链。仅有告警、截断 cause 或缺少 mapping 时可继续排查；不能证明原因则保持 investigating，注明缺失信息，不进行猜测性业务修改。
+3. 直接实施针对性修复并审查 diff，运行与改动相符的编译/测试。问题已被现有代码覆盖时不重复修改，记录覆盖位置和版本依据；不能只因注释或函数名称类似就认定已修复。
+4. 代码修改完成即设置 fixed（代码已修复）。这仅表示代码层面处理完毕，不代表已提交、已发布或真机验证。测试未执行、环境阻断或存在失败须显著写进原因；若失败表明修复尚未完成，继续修复或保留已定位。无需填写不存在的发布版本。每条修复记录必须注明项目仓库、实际修改分支、修改前基线 commit、未提交/已提交状态、文件路径及函数；若改动涉及两端，分别记录各自分支。分支未知不能编造。允许直接记录当前基线 commit + 未提交文件路径及函数，后续有真实 commit/PR 再补链接。
+5. 调用 operations.md 的状态脚本，逐次按最新 version 同步并验证回读。至少留下一条定位依据和一条代码修复记录；不能将所有问题批量标为 fixed。高优先级处理完后继续本轮用户已选的其他可定位问题；结束时明确仍待定位/未完成项。
 
-读取 GET /issues/:fingerprint 获取当前 version、负责人及修复信息，然后创建状态文件：
+旧日志落在当前修复前的版本，不自动重开；有当前代码仍存在缺陷的证据才重开至 investigating。保留人工维护的字段，发现意见冲突时记录新证据，不自动清空负责人、修复链接或跳过并发保护。
 
-```json
-{"issueId":"64位问题指纹","change":{"version":1,"status":"investigating","owner":"Codex","fixVersion":"","fixLink":"","note":"日报 runId；证据与排查计划"}}
-```
+网络/权限失败时将拟更新 JSON 保存在忽略目录 .error-reviews/<date>/<run>/status/，记录未同步，最多重试两次。401/403 不重试猜凭证；409 必须重新评估；不直接写生产数据库。客户端修复可以继续，结束时分别报告“代码完成”和“后台同步”结果。
 
-`npm run error-reviews:status -- <change.json> --validate` 只校验，去掉 `--validate` 后 PATCH 并读回状态/审计记录。修复结束时 status=fixed，note 必须写项目、实际修改分支、代码路径、改动依据、当前 commit 基线/未提交状态及测试结果；fixVersion、fixLink 可空，不为状态操作编造版本或提交。
-
-旧版服务拒绝 token PATCH 时，明确需要部署新版 web，不退回数据库直写或借用管理员账号。普通 review 不部署。网络结果不确定时先读回历史：若期望 version+1 和变更原因已存在则视为成功；否则重新评估，最多重试两次。409 不能自动改 version 强行重放。
+后续再次调用 review 时可利用台账复查，但本工作流不要求进入 verifying/closed，不因当日没有错误样本而认定修复。
 
 操作者：发布/状态脚本运行时读取执行仓库有效的 `git config user.name` 和 `user.email`（含仓库覆盖）。状态更新使用 `--repo /Users/waynelu/timeprint_android` 或 `--repo /Users/waynelu/gps_map_camera` 指定实际修改项目；日报默认使用 timeprint_web。缺少配置时停止写入，不使用历史 commit 作者或 Token 指纹冒充用户。后台保存 `git:用户名 <邮箱>`，中文通过编码请求头传输。Git 信息用于审计归属，身份认证仍由 API Token 完成；网页管理员操作仍记录登录账号。历史审计记录不改写。
+
+Firebase ANR 先看主线程等待、锁持有线程、Binder/I/O 和生命周期；不能因线程名出现某 SDK 就认定根因。原始线程/符号缺失或被截断时记录限制。跨来源疑似同一故障保留各自指纹，选择界面注明关联编号，不将重复报告算成两次故障。
+
+Firebase 配置和命令见 [Firebase 接入](firebase.md)。密钥仅通过本机文件路径读取，不上传至 web，不写入 Git。含 Firebase 字段的日报需要部署支持 source/firebaseCoverage 的新版 web，无新增数据库表。

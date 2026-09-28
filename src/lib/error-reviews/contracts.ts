@@ -27,6 +27,7 @@ export function reviewWindow(date: string) {
 export const evidenceSchema = z
   .object({
     id: hash,
+    source: z.enum(["cos", "firebase"]).optional(),
     platform: platformSchema,
     fingerprint: hash,
     objectKey: text(1024).min(1),
@@ -83,6 +84,7 @@ export const reviewSchema = z
     summary: text(4000).min(1),
     notes: z.array(text(800)).max(30),
     coverage: z.object({ android: coverageSchema, ios: coverageSchema }).strict(),
+    firebaseCoverage: z.object({ android: coverageSchema, ios: coverageSchema }).strict().optional(),
     evidence: z.array(evidenceSchema).max(300),
     findings: z.array(findingSchema).max(100),
   })
@@ -102,10 +104,23 @@ export const reviewSchema = z
     for (const e of r.evidence) {
       if (Date.parse(e.at) < Date.parse(r.window.start) || Date.parse(e.at) >= Date.parse(r.window.end))
         fail("证据不在 review 时间窗口");
-      if (!e.objectKey.startsWith(`${e.platform}_err_log_`) || e.objectKey.includes("..")) fail("证据来源目录无效");
+      if (e.source === "firebase") {
+        if (
+          !new RegExp(`^projects/[\\w-]+/apps/[\\w:-]+:${e.platform}:[\\w-]+/events/[\\w:-]+$`).test(e.objectKey) ||
+          !r.firebaseCoverage
+        )
+          fail("Firebase 证据来源无效");
+      } else if (!e.objectKey.startsWith(`${e.platform}_err_log_`) || e.objectKey.includes(".."))
+        fail("证据来源目录无效");
     }
     for (const p of ["android", "ios"] as const) {
-      if (r.coverage[p].downloaded < r.evidence.filter((e) => e.platform === p).length) fail("采样数量不一致");
+      if (r.coverage[p].downloaded < r.evidence.filter((e) => e.platform === p && e.source !== "firebase").length)
+        fail("采样数量不一致");
+      if (
+        (r.firebaseCoverage?.[p].downloaded ?? 0) <
+        r.evidence.filter((e) => e.platform === p && e.source === "firebase").length
+      )
+        fail("Firebase 采样数量不一致");
     }
     for (const f of r.findings) {
       if (new Set(f.evidenceIds).size !== f.evidenceIds.length) fail("引用证据重复");
